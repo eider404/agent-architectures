@@ -1,2 +1,5 @@
 .agents
 .resource-guide
+.env
+.venv/
+__pycache__/
