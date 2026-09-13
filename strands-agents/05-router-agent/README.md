@@ -1,5 +1,7 @@
 # 05 · Router de agentes (clasificar y despachar)
 
+## Descripción
+
 Un agente lee la petición y devuelve **una decisión tipada**, no texto: un `Route` con una
 `category` sacada de un `Enum` cerrado y un `reason` de doce palabras. Con esa categoría, el código
 indexa un `dict` y llama a **un** especialista de los cuatro. Los otros tres no se enteran. El
@@ -9,6 +11,11 @@ router entero son dos líneas de Python, y solo la primera la pone Strands.
 ramas, ahora corre una.** Mismo proveedor de modelo, mismo `load_dotenv()`, mismo `MODEL_ID`, mismo
 `callback_handler=None`, mismo reseteo por corrida, mismo bucle CLI. Lo único que cambia es que hay
 una decisión en medio — y por eso el ejemplo puede demostrar su tesis con los historiales.
+
+La diferencia no es de topología solamente, es de coste: el abanico paga todas las ramas siempre;
+el router paga dos llamadas aunque haya cuarenta destinos.
+
+## Cómo Funciona
 
 ```
         04 (abanico)                           05 (router)
@@ -27,11 +34,6 @@ una decisión en medio — y por eso el ejemplo puede demostrar su tesis con los
                                    coste CONSTANTE · corre exactamente una
 ```
 
-La diferencia no es de topología solamente, es de coste: el abanico paga todas las ramas siempre;
-el router paga dos llamadas aunque haya cuarenta destinos.
-
-## Detalles del ejemplo
-
 | Información | Detalles |
 |---|---|
 | Características de Strands | `Agent`, `structured_output_model=` en la **invocación**, `AgentResult.structured_output`, `OpenAIResponsesModel`, `callback_handler=None`, `agent.messages` |
@@ -40,7 +42,7 @@ el router paga dos llamadas aunque haya cuarenta destinos.
 | Modelo | `gpt-5.4-nano` (configurable con `MODEL_ID`) |
 | Complejidad | Principiante |
 
-## Conceptos clave
+### Conceptos clave
 
 - **Un router es salida estructurada + una tabla, y solo lo primero lo pone Strands.** La primera
   línea (`classifier(request, structured_output_model=Route).structured_output`) es del framework;
@@ -89,7 +91,18 @@ lo mete en el `tool_spec` de esa única invocación; el modelo la llama, y el SD
 Merece la pena decirlo en voz alta en vez de esconderlo tras el `grep`: la salida estructurada no
 es un modo aparte del modelo, es una llamada a herramienta con el resultado desempaquetado.
 
-## Prerrequisitos
+### Las cuatro diferencias con `04`, y por qué
+
+| Diferencia | Por qué |
+|---|---|
+| **Desaparece `asyncio`** y el archivo vuelve a ser síncrono | Un router es secuencial por naturaleza: primero se clasifica, después se llama a **un** especialista. No hay dos llamadas independientes que solapar, y un `gather` sobre una sola rama sería andamiaje muerto. Mantenerlo contradiría justo la regla que enseña `04`: se paraleliza lo que no se necesita entre sí. Coste aceptado: se pierde la prueba del reloj, y la sustituyen los historiales |
+| **Aparecen `enum.Enum` y `pydantic`** | La decisión tiene que salir de un conjunto cerrado y llegar validada: es el contenido del ejemplo. Cuesta dos importaciones y una cuarta línea en `requirements.txt`. A cambio desaparece cualquier parseo de texto — ni un `.strip()`, ni un `.lower()`, ni un `json.loads` |
+| **Cinco agentes en vez de cuatro** | Cuatro ramas más el clasificador, porque `other` es una rama con su agente y no un `else`. Cuesta cinco `system_prompt`; se contiene manteniéndolos cortos y moviendo el criterio al esquema, y el archivo mide **83 líneas** frente a las 94 de `04` |
+| **El dict se indexa por `Category`, no por `str`** | Permite que `SPECIALISTS[route.category]` no tenga que normalizar nada y que la totalidad de la tabla se compruebe de un vistazo (`for c in Category`). Coste: ninguno |
+
+## Configuración y Pruebas
+
+### Prerrequisitos
 
 - Python 3.10 o superior
 - Una `OPENAI_API_KEY` en un `.env` local
@@ -99,16 +112,7 @@ es un modo aparte del modelo, es una llamada a herramienta con el resultado dese
   Se declara porque `agent.py` la importa directamente, y todo lo que un ejemplo importa y no es
   biblioteca estándar tiene que estar en su `requirements.txt`.
 
-## Estructura del ejemplo
-
-| Archivo | Descripción |
-|---|---|
-| `agent.py` | `Category` + `Route`, los cinco prompts, la fábrica `desk()`, `classifier` + `SPECIALISTS`, `run_router()` y el CLI |
-| `requirements.txt` | 4 dependencias: las 3 de `01`–`04` más `pydantic` |
-| `.env.example` | Plantilla de las 2 variables; se copia a `.env` |
-| `README.md` | Este archivo |
-
-## Cómo ejecutarlo
+### Cómo ejecutarlo
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt   # solo la primera vez
@@ -129,7 +133,7 @@ cp .env.example .env            # y pon tu clave real en el .env
 > es lo que hace depurable un router: si la respuesta es mala, ya sabes si falló la clasificación o
 > el especialista.
 
-## Transcripción de ejemplo
+### Transcripción de ejemplo
 
 Corrida real contra `gpt-5.4-nano`, con las cinco peticiones seguidas en la misma sesión.
 
@@ -202,20 +206,13 @@ Y la segunda petición no arrastra nada de la primera: la respuesta técnica no 
 factura ni marzo. Eso lo garantiza el `messages.clear()` sobre los cinco agentes, no la buena
 voluntad del modelo.
 
+## Información Adicional
+
 **Este ejemplo no está fundamentado.** Los cuatro especialistas trabajan sin herramientas y sin
 acceso a ninguna cuenta, sistema ni lista de precios. Por eso sus prompts les obligan a decir qué
 comprobarían y qué les falta —y a `SALES` a no inventar ninguna cifra— en vez de fingir que
 consultan algo. Se ve en la transcripción: los cuatro piden datos, ninguno los da. No trates sus
 respuestas como información de una cuenta real.
-
-### Las cuatro diferencias con `04`, y por qué
-
-| Diferencia | Por qué |
-|---|---|
-| **Desaparece `asyncio`** y el archivo vuelve a ser síncrono | Un router es secuencial por naturaleza: primero se clasifica, después se llama a **un** especialista. No hay dos llamadas independientes que solapar, y un `gather` sobre una sola rama sería andamiaje muerto. Mantenerlo contradiría justo la regla que enseña `04`: se paraleliza lo que no se necesita entre sí. Coste aceptado: se pierde la prueba del reloj, y la sustituyen los historiales |
-| **Aparecen `enum.Enum` y `pydantic`** | La decisión tiene que salir de un conjunto cerrado y llegar validada: es el contenido del ejemplo. Cuesta dos importaciones y una cuarta línea en `requirements.txt`. A cambio desaparece cualquier parseo de texto — ni un `.strip()`, ni un `.lower()`, ni un `json.loads` |
-| **Cinco agentes en vez de cuatro** | Cuatro ramas más el clasificador, porque `other` es una rama con su agente y no un `else`. Cuesta cinco `system_prompt`; se contiene manteniéndolos cortos y moviendo el criterio al esquema, y el archivo mide **83 líneas** frente a las 94 de `04` |
-| **El dict se indexa por `Category`, no por `str`** | Permite que `SPECIALISTS[route.category]` no tenga que normalizar nada y que la totalidad de la tabla se compruebe de un vistazo (`for c in Category`). Coste: ninguno |
 
 **Nota: un router no necesita un LLM.** Si tienes muchas clases y ejemplos etiquetados de sobra, un
 clasificador entrenado es más barato, más rápido y más estable que una llamada al modelo. La
@@ -224,7 +221,16 @@ dict de despacho y la línea de la indexación se quedan exactamente igual. El L
 razonable cuando las categorías son pocas, las fronteras son borrosas y no tienes datos
 etiquetados — que es el caso de este ejemplo.
 
-## Estructura del proyecto
+### Estructura del ejemplo
+
+| Archivo | Descripción |
+|---|---|
+| `agent.py` | `Category` + `Route`, los cinco prompts, la fábrica `desk()`, `classifier` + `SPECIALISTS`, `run_router()` y el CLI |
+| `requirements.txt` | 4 dependencias: las 3 de `01`–`04` más `pydantic` |
+| `.env.example` | Plantilla de las 2 variables; se copia a `.env` |
+| `README.md` | Este archivo |
+
+### Estructura del proyecto
 
 ```
 05-router-agent/
@@ -235,14 +241,14 @@ etiquetados — que es el caso de este ejemplo.
 └── .env                # tu clave; ignorado por git, no se commitea
 ```
 
-## Limpieza
+### Limpieza
 
 No hay nada que limpiar: el ejemplo no crea recursos, no lanza subprocesos y no escribe ningún
 archivo. El historial de los cinco agentes se vacía al principio de cada corrida, y la tool que el
 SDK genera a partir del esquema vive solo durante esa invocación. Para borrar el entorno:
 `rm -rf .venv`.
 
-## Recursos adicionales
+### Recursos adicionales
 
 - [Strands Agents — documentación](https://strandsagents.com/)
 - [Salida estructurada en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/structured-output/)

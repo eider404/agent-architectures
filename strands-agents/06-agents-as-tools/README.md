@@ -1,5 +1,7 @@
 # 06 · Agentes como herramientas (composición jerárquica)
 
+## Descripción
+
 Un orquestador con dos herramientas. Las dos son **agentes**: funciones `@tool` de tres líneas que
 llaman a un `Agent` y devuelven `str(...)`. El SDK no distingue lo que hay dentro —un `dict`, una
 API, otro agente con su propio bucle de herramientas— así que la composición jerárquica no necesita
@@ -39,7 +41,9 @@ La diferencia no es de topología, es de **quién decide**. En `05` el despacho 
 de las dos `@tool`, lo decide el modelo en tiempo de ejecución, y el precio es que el coste del
 turno ya no se puede leer en el archivo.
 
-## Detalles del ejemplo
+## Cómo Funciona
+
+### Detalles del ejemplo
 
 | Información | Detalles |
 |---|---|
@@ -48,8 +52,9 @@ turno ya no se puede leer en el archivo.
 | Herramientas | **4**: dos envuelven un agente (`flights_agent`, `hotels_agent`) y dos leen un `dict` (`search_flights`, `search_hotels`) |
 | Modelo | `gpt-5.4-nano` (configurable con `MODEL_ID`) |
 | Complejidad | Intermedio |
+| Dependencias externas | Ninguna: no hay servidor MCP ni API externa, solo la API directa de OpenAI |
 
-## Conceptos clave
+### Conceptos clave
 
 - **Un agente-herramienta es una función `@tool` que llama a un `Agent` y devuelve `str(...)`.**
   Tres líneas de cuerpo: la traza, la llamada y el `str()`. No hay una clase que heredar ni un
@@ -102,7 +107,45 @@ síncrono (`def` + `str(flights(request))`), que es exactamente lo que hace este
 `async def` + `await flights.invoke_async(...)` también funcionaría, pero es material de otro
 ejemplo y aquí sobraría.
 
-## Prerrequisitos
+### Las cinco diferencias con `05`, y por qué
+
+| Diferencia | Por qué |
+|---|---|
+| **Vuelven las `@tool`**, cuatro, tras dos ejemplos sin ninguna | Son el contenido del ejemplo: dos envuelven un agente y dos dan de comer al segundo nivel. Sin las de datos, "agente como herramienta" no se distinguiría de "prompt como herramienta" |
+| **Desaparecen `pydantic` y `enum`** | El criterio de despacho ya no es un esquema validado, es un docstring en lenguaje natural. Se gana una dependencia menos y dos importaciones menos; se pierde el conjunto cerrado de destinos: el modelo puede llamar a cero, a uno, a los dos o al mismo dos veces, y eso no lo cierra nadie |
+| **Tres agentes en vez de cinco** | Un orquestador y dos especialistas. Menos agentes pero más piezas, porque ahora cada especialista tiene su propia herramienta y su propio bucle. El archivo mide **110 líneas** frente a las 83 de `05` |
+| **El coste deja de ser constante** | De 2 llamadas fijas a 1, 4, 6 o 7. Es la consecuencia directa de mover la decisión del código al modelo, y por eso el README la tabula en vez de esconderla |
+| **La prueba principal cambia de sitio** | `05` demostraba su tesis con los **historiales vacíos** de las ramas que no corrieron. Aquí la prueba son los **`toolUse`** del orquestador: qué herramientas llamó el modelo. Los historiales vacíos siguen valiendo, pero como prueba secundaria |
+
+### `Agent.as_tool()`: el primitivo nativo que este ejemplo no usa
+
+Strands trae este patrón de fábrica, y conviene saberlo para no reimplementar a mano algo que ya
+existe **sin saber que existe**. La firma real de la versión instalada (1.55.1):
+
+```python
+Agent.as_tool(*, name=None, description=None, preserve_context=False, delegate=False) -> AgentTool
+```
+
+Este ejemplo escribe el envoltorio a mano **a propósito**: el objetivo es enseñar que un
+agente-herramienta no es magia del framework, sino una función que llama a un `Agent`. Si lo
+resolviéramos con `as_tool()`, el lector vería una llamada a un método y no el mecanismo. Las
+diferencias que importan si decides usarlo:
+
+| | Envoltorio a mano (este ejemplo) | `Agent.as_tool()` |
+|---|---|---|
+| Nombre de la tool | El de la función (`flights_agent`) | El argumento `name=`, o el del agente |
+| Descripción | El docstring: resumen + `Returns:` | El argumento `description=` |
+| Parámetro | El que tú declares, con **tu** descripción (`request: The trip in one sentence, in the user's language.`) | **Siempre** `input: str`, con la descripción fija *"The input to send to the agent tool."* |
+| Historial del sub-agente | Se resetea **por corrida**, en `run_trip()` | `preserve_context=False` por defecto: se resetea **por llamada** |
+| Última llamada del orquestador | Siempre la hace, para redactar el plan | `delegate=True` devuelve la respuesta del sub-agente directamente al usuario y se la ahorra |
+
+La diferencia del parámetro es la que más pesa en la práctica: con `as_tool()` pierdes el sitio
+donde este ejemplo pone la mitad del criterio de despacho. Disponibilidad por versión: `as_tool()`
+desde **1.47.0**, el argumento `delegate=` desde **1.53.0**.
+
+## Configuración y Pruebas
+
+### Prerrequisitos
 
 - Python 3.10 o superior
 - Una `OPENAI_API_KEY` en un `.env` local
@@ -111,16 +154,7 @@ ejemplo y aquí sobraría.
   importa, y vuelve a ser idéntico al de `01`–`04`. El ejemplo con más piezas de los seis —tres
   agentes, cuatro herramientas, dos niveles— tiene el `requirements.txt` más corto.
 
-## Estructura del ejemplo
-
-| Archivo | Descripción |
-|---|---|
-| `agent.py` | `FLIGHTS` + `HOTELS`, las 2 tools de datos, los 3 prompts, `specialist()`, los 2 especialistas, los 2 envoltorios `@tool`, `orchestrator`, `run_trip()` y el CLI |
-| `requirements.txt` | 3 dependencias: idéntico al de `01`–`04` |
-| `.env.example` | Plantilla de las 2 variables; se copia a `.env` |
-| `README.md` | Este archivo |
-
-## Cómo ejecutarlo
+### Cómo ejecutarlo
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt   # solo la primera vez
@@ -142,7 +176,7 @@ cp .env.example .env            # y pon tu clave real en el .env
 > ocurre, igual que el `[router]` de `05` salía antes del especialista. Si no ves ninguna línea
 > `[tool]`, el orquestador decidió contestar él.
 
-## Transcripción de ejemplo
+### Transcripción de ejemplo
 
 Corrida real contra `gpt-5.4-nano`, con las cuatro peticiones seguidas en la misma sesión.
 
@@ -209,6 +243,8 @@ que el reseteo hace explícito: `flights` acumula **8 mensajes** y dos `search_f
 porque `messages.clear()` es **por corrida**, no por llamada. Un especialista al que llaman dos
 veces recuerda la primera.
 
+## Información Adicional
+
 **Los datos son inventados.** El catálogo tiene tres ciudades y los códigos, horarios y precios no
 corresponden a ningún vuelo ni hotel real: `IB-4417`, `Casa Kraken`, `Pensao Vela Roja`. Son
 arbitrarios a propósito, porque ningún modelo puede adivinarlos y por eso sirven de prueba. Para
@@ -223,43 +259,7 @@ docstring, que ahora dice `Destination city, in English: translate it first, e.g
 "Porto"`— y no con una tabla de sinónimos ni con un `if`. La transcripción de arriba es la corrida
 posterior al arreglo.
 
-### Las cinco diferencias con `05`, y por qué
-
-| Diferencia | Por qué |
-|---|---|
-| **Vuelven las `@tool`**, cuatro, tras dos ejemplos sin ninguna | Son el contenido del ejemplo: dos envuelven un agente y dos dan de comer al segundo nivel. Sin las de datos, "agente como herramienta" no se distinguiría de "prompt como herramienta" |
-| **Desaparecen `pydantic` y `enum`** | El criterio de despacho ya no es un esquema validado, es un docstring en lenguaje natural. Se gana una dependencia menos y dos importaciones menos; se pierde el conjunto cerrado de destinos: el modelo puede llamar a cero, a uno, a los dos o al mismo dos veces, y eso no lo cierra nadie |
-| **Tres agentes en vez de cinco** | Un orquestador y dos especialistas. Menos agentes pero más piezas, porque ahora cada especialista tiene su propia herramienta y su propio bucle. El archivo mide **110 líneas** frente a las 83 de `05` |
-| **El coste deja de ser constante** | De 2 llamadas fijas a 1, 4, 6 o 7. Es la consecuencia directa de mover la decisión del código al modelo, y por eso el README la tabula en vez de esconderla |
-| **La prueba principal cambia de sitio** | `05` demostraba su tesis con los **historiales vacíos** de las ramas que no corrieron. Aquí la prueba son los **`toolUse`** del orquestador: qué herramientas llamó el modelo. Los historiales vacíos siguen valiendo, pero como prueba secundaria |
-
-### `Agent.as_tool()`: el primitivo nativo que este ejemplo no usa
-
-Strands trae este patrón de fábrica, y conviene saberlo para no reimplementar a mano algo que ya
-existe **sin saber que existe**. La firma real de la versión instalada (1.55.1):
-
-```python
-Agent.as_tool(*, name=None, description=None, preserve_context=False, delegate=False) -> AgentTool
-```
-
-Este ejemplo escribe el envoltorio a mano **a propósito**: el objetivo es enseñar que un
-agente-herramienta no es magia del framework, sino una función que llama a un `Agent`. Si lo
-resolviéramos con `as_tool()`, el lector vería una llamada a un método y no el mecanismo. Las
-diferencias que importan si decides usarlo:
-
-| | Envoltorio a mano (este ejemplo) | `Agent.as_tool()` |
-|---|---|---|
-| Nombre de la tool | El de la función (`flights_agent`) | El argumento `name=`, o el del agente |
-| Descripción | El docstring: resumen + `Returns:` | El argumento `description=` |
-| Parámetro | El que tú declares, con **tu** descripción (`request: The trip in one sentence, in the user's language.`) | **Siempre** `input: str`, con la descripción fija *"The input to send to the agent tool."* |
-| Historial del sub-agente | Se resetea **por corrida**, en `run_trip()` | `preserve_context=False` por defecto: se resetea **por llamada** |
-| Última llamada del orquestador | Siempre la hace, para redactar el plan | `delegate=True` devuelve la respuesta del sub-agente directamente al usuario y se la ahorra |
-
-La diferencia del parámetro es la que más pesa en la práctica: con `as_tool()` pierdes el sitio
-donde este ejemplo pone la mitad del criterio de despacho. Disponibilidad por versión: `as_tool()`
-desde **1.47.0**, el argumento `delegate=` desde **1.53.0**.
-
-## Estructura del proyecto
+### Estructura del proyecto
 
 ```
 06-agents-as-tools/
@@ -270,13 +270,13 @@ desde **1.47.0**, el argumento `delegate=` desde **1.53.0**.
 └── .env                # tu clave; ignorado por git, no se commitea
 ```
 
-## Limpieza
+### Limpieza
 
 No hay nada que limpiar: el ejemplo no crea recursos, no lanza subprocesos y no escribe ningún
 archivo. Los tres historiales se vacían al principio de cada corrida, y los hilos que el SDK usa
 para los sub-agentes mueren con el proceso. Para borrar el entorno: `rm -rf .venv`.
 
-## Recursos adicionales
+### Recursos adicionales
 
 - [Strands Agents — documentación](https://strandsagents.com/)
 - [Agentes como herramientas](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/agents-as-tools/)

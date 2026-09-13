@@ -1,5 +1,7 @@
 # 03 · Pipeline secuencial de agentes
 
+## Descripción
+
 Tres agentes encadenados en secuencia: uno investiga, otro estructura y otro redacta. La salida
 de cada uno es la entrada del siguiente, y el encadenado entero son **tres asignaciones de
 Python** — no hay orquestador, ni `GraphBuilder`, ni `Swarm`, ni un bucle de etapas.
@@ -20,17 +22,20 @@ Usuario (stdin) ──► run_pipeline("el impacto de los LLM en la educación")
                 tres agentes · cero herramientas · ningún orquestador
 ```
 
-## Detalles del ejemplo
+## Cómo Funciona
+
+### Detalles del ejemplo
 
 | Información | Detalles |
 |---|---|
 | Características de Strands | `Agent`, `OpenAIResponsesModel`, `callback_handler=None`, `agent.messages` |
 | Patrón de agente | Tres agentes en secuencia, encadenados a mano, sin orquestador |
 | Herramientas | **Ninguna** — el ejemplo no define ni consume ninguna |
+| Integraciones externas | **Ninguna** — a diferencia de `02`, no hay servidor MCP ni subproceso; todo el flujo vive dentro de `agent.py` |
 | Modelo | `gpt-5.4-nano` (configurable con `MODEL_ID`) |
 | Complejidad | Principiante |
 
-## Conceptos clave
+### Conceptos clave
 
 - **Un `Agent` es un invocable de texto a texto.** Recibe un `str` y devuelve un `AgentResult`.
   Eso es todo lo que hace falta para encadenarlos: `notes = str(research_agent(topic))`.
@@ -50,14 +55,24 @@ Usuario (stdin) ──► run_pipeline("el impacto de los LLM en la educación")
 - **Un agente es conversacional por defecto; un pipeline no.** Por eso cada corrida empieza
   vaciando `agent.messages` de las tres etapas.
 
-## Prerrequisitos
+### Las tres diferencias con `01` y `02`, y por qué
+
+| Diferencia | Por qué |
+|---|---|
+| `callback_handler=None` en las tres etapas | Con el handler por defecto cada etapa imprime su respuesta en streaming **y** `run_pipeline` la vuelve a imprimir: seis bloques de texto para tres salidas. Además aquí no hay líneas `Tool #N:` que mostrar, porque no hay herramientas. El coste es el silencio de la consola durante cada etapa |
+| `Topic >` en vez de `You >` | Lo que se escribe no es un turno de conversación, sino la entrada de un proceso que se ejecuta entero y termina. La estructura del bucle (`while True` / `input()` / `exit`) es idéntica a la de `01` y `02` |
+| Los agentes se resetean en cada corrida | Son constantes de módulo (importables, como en `01`), así que acumulan historial entre corridas. Sin el `clear()`, el segundo tema arrastraría el primero. `OpenAIResponsesModel` tiene `stateful = False`, así que vaciar la lista local basta de verdad |
+
+## Configuración y Pruebas
+
+### Prerrequisitos
 
 - Python 3.10 o superior
 - Una `OPENAI_API_KEY` en un `.env` local
 - **Sin AWS** y **sin Node.js**: el prerrequisito que `02` introdujo (`npx` para lanzar el
   servidor MCP) desaparece aquí. Las dependencias vuelven a ser las tres de `01`.
 
-## Estructura del ejemplo
+### Estructura del ejemplo
 
 | Archivo | Descripción |
 |---|---|
@@ -66,7 +81,7 @@ Usuario (stdin) ──► run_pipeline("el impacto de los LLM en la educación")
 | `.env.example` | Plantilla de las 2 variables; se copia a `.env` |
 | `README.md` | Este archivo |
 
-## Cómo ejecutarlo
+### Cómo ejecutarlo
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt   # solo la primera vez
@@ -86,7 +101,7 @@ cp .env.example .env            # y pon tu clave real en el .env
 > El banner `[N/3]` sale **antes** de invocar la etapa, precisamente para que siempre se vea en
 > qué punto está el pipeline. No está colgado: está pensando.
 
-## Transcripción de ejemplo
+### Transcripción de ejemplo
 
 Corrida real contra `gpt-5.4-nano`, recortada a las primeras viñetas de la etapa 1 por espacio;
 las etapas 2 y 3 van completas.
@@ -164,21 +179,15 @@ En la misma sesión se escribió un segundo tema (`el precio del cacao`) y el bo
 no menciona ni la educación ni los LLM. Eso lo garantiza el `messages.clear()`, no la buena
 voluntad del modelo.
 
+## Información Adicional
+
 **Este ejemplo no está fundamentado.** La etapa 1 trabaja de memoria: no tiene herramientas ni
 acceso a la web, y su prompt se lo dice explícitamente, además de pedirle que describa las cifras
 de forma cualitativa en vez de inventar números precisos. `01` y `02` enseñaban a fundamentar una
 respuesta en algo externo; `03` enseña a **componer** agentes. No trates sus salidas como hechos
 verificados.
 
-### Las tres diferencias con `01` y `02`, y por qué
-
-| Diferencia | Por qué |
-|---|---|
-| `callback_handler=None` en las tres etapas | Con el handler por defecto cada etapa imprime su respuesta en streaming **y** `run_pipeline` la vuelve a imprimir: seis bloques de texto para tres salidas. Además aquí no hay líneas `Tool #N:` que mostrar, porque no hay herramientas. El coste es el silencio de la consola durante cada etapa |
-| `Topic >` en vez de `You >` | Lo que se escribe no es un turno de conversación, sino la entrada de un proceso que se ejecuta entero y termina. La estructura del bucle (`while True` / `input()` / `exit`) es idéntica a la de `01` y `02` |
-| Los agentes se resetean en cada corrida | Son constantes de módulo (importables, como en `01`), así que acumulan historial entre corridas. Sin el `clear()`, el segundo tema arrastraría el primero. `OpenAIResponsesModel` tiene `stateful = False`, así que vaciar la lista local basta de verdad |
-
-## Estructura del proyecto
+### Estructura del proyecto
 
 ```
 03-sequential-pipeline/
@@ -189,13 +198,13 @@ verificados.
 └── .env                # tu clave; ignorado por git, no se commitea
 ```
 
-## Limpieza
+### Limpieza
 
 No hay nada que limpiar: el ejemplo no crea recursos, no lanza subprocesos y no escribe ningún
 archivo. El historial de las tres etapas se vacía al principio de cada corrida, y el proceso no
 deja estado al salir. Para borrar el entorno: `rm -rf .venv`.
 
-## Recursos adicionales
+### Recursos adicionales
 
 - [Strands Agents — documentación](https://strandsagents.com/)
 - [Multi-agent en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/)

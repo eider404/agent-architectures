@@ -1,5 +1,7 @@
 # Agente con herramientas MCP (`02-mcp-agent`)
 
+## Descripción
+
 Este ejemplo no define **ninguna** herramienta propia: no hay un solo `@tool` en el archivo.
 Las cinco que usa el agente se las presta un servidor externo —el servidor oficial de
 filesystem del Model Context Protocol— que el script lanza como subproceso y al que le
@@ -13,7 +15,9 @@ es **de dónde salen las tools**: allí eran dos funciones decoradas en el propi
 son una lista que devuelve un servidor. Todo lo demás —proveedor de modelo, `.env`, bucle
 CLI— es idéntico, para que ese contraste sea la única señal.
 
-## Detalles del ejemplo
+## Cómo Funciona
+
+### Detalles del ejemplo
 
 | Información | Detalles |
 |---|---|
@@ -28,7 +32,13 @@ siga siendo cierta dentro de seis meses. Para actualizarla, cambia `FS_SERVER` e
 y vuelve a ejecutar: el arranque imprime el catálogo de tools admitidas. Si alguna de las
 cinco de `READ_ONLY` desapareciera del servidor, saldría una lista más corta y ahí se ve.
 
-## Conceptos clave
+### Integración externa: el servidor MCP
+
+El único componente externo de este ejemplo es el servidor MCP de filesystem, lanzado como
+subproceso vía `npx`. Vive fuera del proceso Python, se comunica por stdio y expone su propio
+catálogo de herramientas, que el agente descubre en tiempo de ejecución (ver más abajo).
+
+### Conceptos clave
 
 - **MCPClient**: recibe una *factoría* de transporte (`lambda: stdio_client(...)`), no un
   transporte ya construido. Es él quien decide cuándo abrirlo.
@@ -45,7 +55,9 @@ cinco de `READ_ONLY` desapareciera del servidor, saldría una lista más corta y
   del `with` compila sin quejas y falla con `MCPClientInitializationError` en la primera
   llamada.
 
-## Prerrequisitos
+## Configuración y Pruebas
+
+### Prerrequisitos
 
 - Python 3.10 o superior
 - **Node.js 18 o superior**, porque el servidor MCP se lanza con `npx`. Compruébalo con
@@ -56,17 +68,7 @@ cinco de `READ_ONLY` desapareciera del servidor, saldría una lista más corta y
 - No hace falta cuenta ni credenciales de AWS
 - Conocimientos básicos de Python
 
-## Estructura del ejemplo
-
-| Archivo | Descripción |
-|---|---|
-| [`agent.py`](./agent.py) | Todo el ejemplo: cliente MCP, filtro de herramientas, agente y bucle CLI |
-| [`requirements.txt`](./requirements.txt) | Las cuatro dependencias directas |
-| [`.env.example`](./.env.example) | Plantilla de configuración; cópiala a `.env` (ignorado por git) |
-| [`README.md`](./README.md) | Este documento |
-| [`sandbox/`](./sandbox/) | Cuatro archivos de juguete del proyecto ficticio "Kraken": lo único que el agente puede ver |
-
-## Cómo ejecutarlo
+### Cómo ejecutarlo
 
 ```bash
 cd strands-agents/02-mcp-agent
@@ -90,7 +92,7 @@ El `.env` admite dos variables:
 El `.env` está en el `.gitignore` de la raíz del repositorio, así que **nunca se commitea**.
 Lo que sí viaja con git es `.env.example`, la plantilla sin secretos.
 
-## Transcripción de ejemplo
+### Transcripción de ejemplo
 
 Sesión real contra `gpt-5.4-nano`, recortada solo en las líneas en blanco:
 
@@ -158,7 +160,19 @@ presencia demuestra que el archivo se leyó de verdad. Y en el último turno **n
 línea `Tool #N:`**: el agente no intentó borrar nada porque las herramientas de escritura
 nunca entraron en su catálogo.
 
-## Estructura del proyecto
+## Información Adicional
+
+### Estructura del ejemplo
+
+| Archivo | Descripción |
+|---|---|
+| [`agent.py`](./agent.py) | Todo el ejemplo: cliente MCP, filtro de herramientas, agente y bucle CLI |
+| [`requirements.txt`](./requirements.txt) | Las cuatro dependencias directas |
+| [`.env.example`](./.env.example) | Plantilla de configuración; cópiala a `.env` (ignorado por git) |
+| [`README.md`](./README.md) | Este documento |
+| [`sandbox/`](./sandbox/) | Cuatro archivos de juguete del proyecto ficticio "Kraken": lo único que el agente puede ver |
+
+### Estructura del proyecto
 
 ```
 02-mcp-agent/
@@ -175,13 +189,13 @@ nunca entraron en su catálogo.
         └── despliegue.md
 ```
 
-## Limpieza
+### Limpieza
 
 El ejemplo no crea recursos persistentes. El subproceso `npx` del servidor MCP muere al salir
 del `with`, es decir, al escribir `exit`. El `sandbox/` tampoco se modifica: el agente no
 tiene con qué.
 
-## Recursos adicionales
+### Recursos adicionales
 
 - [Strands Agents — documentación](https://strandsagents.com/)
 - [Strands Agents — herramientas MCP](https://strandsagents.com/docs/user-guide/concepts/tools/mcp-tools/)

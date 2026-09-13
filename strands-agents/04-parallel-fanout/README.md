@@ -1,5 +1,7 @@
 # 04 · Abanico paralelo de agentes (fan-out / fan-in)
 
+## Descripción
+
 Tres agentes leen **la misma** propuesta a la vez —uno busca los pros, otro los contras, otro los
 riesgos— y un cuarto espera a los tres y dicta un veredicto. El abanico entero es **una línea de
 Python**: un `asyncio.gather` sobre `invoke_async`. No hay orquestador, ni `GraphBuilder`, ni
@@ -28,7 +30,7 @@ su tesis con un reloj.
 La condición para pasar de lo primero a lo segundo no es técnica, es de **dependencias**: se
 paraleliza lo que no se necesita entre sí.
 
-## Detalles del ejemplo
+## Cómo Funciona
 
 | Información | Detalles |
 |---|---|
@@ -38,7 +40,7 @@ paraleliza lo que no se necesita entre sí.
 | Modelo | `gpt-5.4-nano` (configurable con `MODEL_ID`) |
 | Complejidad | Principiante |
 
-## Conceptos clave
+### Conceptos clave
 
 - **`asyncio.gather` sobre `invoke_async` no es una API multi-agente.** Es `asyncio` con otra
   ropa. Strands no aporta aquí una primitiva de paralelismo: aporta un método `async` por agente,
@@ -67,7 +69,18 @@ paraleliza lo que no se necesita entre sí.
 - **Un agente es conversacional por defecto; un abanico no.** Cada corrida empieza vaciando
   `agent.messages` de los **cuatro** agentes — es fácil olvidarse del agregador.
 
-## Prerrequisitos
+### Las cuatro diferencias con `03`, y por qué
+
+| Diferencia | Por qué |
+|---|---|
+| Aparecen `asyncio` y dos `async def` (`timed`, `run_fanout`) | Es el precio literal de la tesis: sin corrutinas no hay concurrencia de E/S. Se paga una sola vez y se ve entero — tres líneas de `asyncio` y dos corrutinas. El bloque `__main__` sigue siendo **síncrono**: la única frontera entre los dos mundos es el `asyncio.run(...)` del bucle |
+| Hay un cronómetro (`time.perf_counter`) | `03` podía demostrar el encadenado a ojo, mirando los títulos copiados. El paralelismo no se ve: se mide. Sin las dos líneas de tiempo el ejemplo afirmaría su tesis en vez de demostrarla, así que el cronómetro no es instrumentación opcional, es la prueba |
+| `callback_handler=None` pasa de conveniente a **obligatorio** | En `03` evitaba imprimir cada etapa dos veces. Aquí, con el handler por defecto, tres respuestas en streaming se intercalarían carácter a carácter en la misma consola y la salida sería ilegible. Es la primera vez que desactivar el streaming deja de ser una comodidad |
+| Las ramas viven en un dict `ANALYSTS` y no en tres constantes sueltas | En `03` las tres etapas tenían nombre propio porque cada una hacía algo distinto y en un orden fijo. Aquí son intercambiables, así que van en una estructura sobre la que se itera: es lo que permite que el `gather` sea una sola expresión generadora y no un `for` con `create_task` — o sea, un mini orquestador |
+
+## Configuración y Pruebas
+
+### Prerrequisitos
 
 - Python 3.10 o superior
 - Una `OPENAI_API_KEY` en un `.env` local
@@ -76,7 +89,7 @@ paraleliza lo que no se necesita entre sí.
   son biblioteca estándar, y el `requirements.txt` es idéntico, línea por línea, al de `01` y
   `03`.
 
-## Estructura del ejemplo
+### Estructura del ejemplo
 
 | Archivo | Descripción |
 |---|---|
@@ -85,7 +98,7 @@ paraleliza lo que no se necesita entre sí.
 | `.env.example` | Plantilla de las 2 variables; se copia a `.env` |
 | `README.md` | Este archivo |
 
-## Cómo ejecutarlo
+### Cómo ejecutarlo
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -r requirements.txt   # solo la primera vez
@@ -106,7 +119,7 @@ cp .env.example .env            # y pon tu clave real en el .env
 > tiempo, y salen **en cuanto cada rama termina**: por eso aparecen en desorden respecto a como
 > están declaradas. Ese desorden es la prueba visual de que corrieron a la vez.
 
-## Transcripción de ejemplo
+### Transcripción de ejemplo
 
 Corrida real contra `gpt-5.4-nano`, con dos propuestas seguidas en la misma sesión.
 
@@ -199,21 +212,14 @@ entero. Es lo que aquí sustituye al `62.1371 mi` de `01` y al `8642` de `02`.
 En la misma sesión, el segundo veredicto no menciona ni el monolito ni los microservicios. Eso lo
 garantiza el `messages.clear()` sobre los cuatro agentes, no la buena voluntad del modelo.
 
+## Información Adicional
+
 **Este ejemplo no está fundamentado.** Las cuatro ramas trabajan de memoria: no tienen
 herramientas ni acceso a la web. Aquí eso es correcto, porque `04` enseña una **topología**, no a
 fundamentar — igual que `03` enseñaba a componer. No trates sus veredictos como análisis
 verificados.
 
-### Las cuatro diferencias con `03`, y por qué
-
-| Diferencia | Por qué |
-|---|---|
-| Aparecen `asyncio` y dos `async def` (`timed`, `run_fanout`) | Es el precio literal de la tesis: sin corrutinas no hay concurrencia de E/S. Se paga una sola vez y se ve entero — tres líneas de `asyncio` y dos corrutinas. El bloque `__main__` sigue siendo **síncrono**: la única frontera entre los dos mundos es el `asyncio.run(...)` del bucle |
-| Hay un cronómetro (`time.perf_counter`) | `03` podía demostrar el encadenado a ojo, mirando los títulos copiados. El paralelismo no se ve: se mide. Sin las dos líneas de tiempo el ejemplo afirmaría su tesis en vez de demostrarla, así que el cronómetro no es instrumentación opcional, es la prueba |
-| `callback_handler=None` pasa de conveniente a **obligatorio** | En `03` evitaba imprimir cada etapa dos veces. Aquí, con el handler por defecto, tres respuestas en streaming se intercalarían carácter a carácter en la misma consola y la salida sería ilegible. Es la primera vez que desactivar el streaming deja de ser una comodidad |
-| Las ramas viven en un dict `ANALYSTS` y no en tres constantes sueltas | En `03` las tres etapas tenían nombre propio porque cada una hacía algo distinto y en un orden fijo. Aquí son intercambiables, así que van en una estructura sobre la que se itera: es lo que permite que el `gather` sea una sola expresión generadora y no un `for` con `create_task` — o sea, un mini orquestador |
-
-## Estructura del proyecto
+### Estructura del proyecto
 
 ```
 04-parallel-fanout/
@@ -224,13 +230,13 @@ verificados.
 └── .env                # tu clave; ignorado por git, no se commitea
 ```
 
-## Limpieza
+### Limpieza
 
 No hay nada que limpiar: el ejemplo no crea recursos, no lanza subprocesos y no escribe ningún
 archivo. El bucle de eventos se abre y se cierra dentro de cada `asyncio.run`, y el historial de
 los cuatro agentes se vacía al principio de cada corrida. Para borrar el entorno: `rm -rf .venv`.
 
-## Recursos adicionales
+### Recursos adicionales
 
 - [Strands Agents — documentación](https://strandsagents.com/)
 - [`asyncio.gather` — documentación de Python](https://docs.python.org/3/library/asyncio-task.html#asyncio.gather)
