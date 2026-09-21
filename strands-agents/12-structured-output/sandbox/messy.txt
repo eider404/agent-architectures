@@ -1,0 +1,12 @@
+INVOICE
+
+Invoice number: INV-8844
+Supplier: Nordkapp Rigging AB
+Date issued: 4 March 2026
+Currency: $ (USD)
+
+Line items:
+  4 x Winch handle              @ $25.00     $100.00
+  1 x Anchor chain 10m          @ $80.00      $80.00
+
+Total due: $180.00

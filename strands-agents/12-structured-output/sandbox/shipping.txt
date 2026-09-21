@@ -1,0 +1,16 @@
+INVOICE
+
+Invoice number: INV-8843
+Supplier: Nordkapp Rigging AB
+Date issued: 2026-03-11
+Currency: EUR
+
+Line items:
+  3 x Deck cleat                @ 100.00     300.00
+
+Subtotal: 300.00
+
+Charges:
+  Shipping                                    15.00
+
+Total due: 315.00
