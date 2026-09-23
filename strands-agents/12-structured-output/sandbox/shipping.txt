@@ -10,7 +10,7 @@ Line items:
 
 Subtotal: 300.00
 
-Charges:
-  Shipping                                    15.00
+Note: a 15.00 shipping fee applies to this order and is already reflected
+in the total below.
 
 Total due: 315.00
