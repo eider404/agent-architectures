@@ -1,96 +1,96 @@
-# 02 · Agente con herramientas MCP
+# 02 · Agent with MCP tools
 
-Un agente que responde preguntas sobre los archivos de una carpeta local (`sandbox/`). No define
-ninguna herramienta propia: se las presta un servidor externo del **Model Context Protocol**
-(MCP), que el script lanza y al que pregunta, al arrancar, qué sabe hacer. Sirve para ver cómo
-conectar un agente a herramientas que viven fuera de tu código.
+An agent that answers questions about the files in a local folder (`sandbox/`). It defines no
+tools of its own: an external **Model Context Protocol** (MCP) server lends them, and the script
+launches it and asks it, at startup, what it can do. It shows how to connect an agent to tools
+that live outside your code.
 
-> **Diferencia con `01`:** de dónde salen las herramientas. Allí eran funciones `@tool` del
-> archivo; aquí son una lista que devuelve un servidor MCP.
+> **Difference with `01`:** where the tools come from. There they were `@tool` functions in the
+> file; here they are a list returned by an MCP server.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    U([Usuario]) --> A[Agent]
+    U([User]) --> A[Agent]
     A <--> C[MCPClient]
-    C <-->|stdio| S["Servidor filesystem<br/>lanzado con npx"]
+    C <-->|stdio| S["Filesystem server<br/>launched with npx"]
     S --> F[("sandbox/")]
-    C -. "filtro: 5 de 14 tools" .-> A
-    A --> R([Respuesta])
+    C -. "filter: 5 of 14 tools" .-> A
+    A --> R([Response])
 ```
 
 | | |
 |---|---|
-| Patrón | Agente único con herramientas externas (MCP) |
-| Piezas de Strands | `Agent`, `MCPClient`, `list_tools_sync`, `tool_filters`, `OpenAIResponsesModel` |
-| Herramientas | `read_text_file`, `list_directory`, `directory_tree`, `search_files`, `get_file_info`. Ninguna propia |
-| Servidor MCP | `@modelcontextprotocol/server-filesystem@2026.8.31` (versión fijada) |
-| Modelo | `gpt-5.4-nano` (cambiable con `MODEL_ID`) |
+| Pattern | Single agent with external tools (MCP) |
+| Strands pieces | `Agent`, `MCPClient`, `list_tools_sync`, `tool_filters`, `OpenAIResponsesModel` |
+| Tools | `read_text_file`, `list_directory`, `directory_tree`, `search_files`, `get_file_info`. None of its own |
+| MCP server | `@modelcontextprotocol/server-filesystem@2026.8.31` (pinned version) |
+| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
 
-**Ideas clave**
+**Key ideas**
 
-- **Las herramientas se descubren al arrancar.** `list_tools_sync()` pregunta al servidor qué
-  ofrece. El catálogo no está escrito en el código.
-- **Lista blanca, no lista negra.** El servidor ofrece 14 tools y `tool_filters={"allowed": [...]}`
-  solo deja pasar las 5 de lectura. Las de escritura nunca llegan al modelo.
-- **Todo vive dentro de `with fs_client:`.** Las tools solo funcionan con la sesión abierta. Si
-  creas el agente fuera, falla con `MCPClientInitializationError` en la primera llamada.
+- **Tools are discovered at startup.** `list_tools_sync()` asks the server what it offers. The
+  catalog is not written in the code.
+- **Allowlist, not denylist.** The server offers 14 tools and `tool_filters={"allowed": [...]}`
+  lets through only the 5 read-only ones. The write tools never reach the model.
+- **Everything lives inside `with fs_client:`.** The tools only work while the session is open. If
+  you create the agent outside it, it fails with `MCPClientInitializationError` on the first call.
 
-## Configuración y ejecución
+## Setup and running
 
-Requisitos: Python 3.10+, **Node.js ≥ 18** (`node --version`) y una `OPENAI_API_KEY`.
+Requirements: Python 3.10+, **Node.js ≥ 18** (`node --version`) and an `OPENAI_API_KEY`.
 
 ```bash
 cd strands-agents/02-mcp-agent
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # pon tu OPENAI_API_KEY
-.venv/bin/python agent.py     # 'exit' para salir
+cp .env.example .env          # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py     # 'exit' to quit
 ```
 
-| Variable | Obligatoria | Uso |
+| Variable | Required | Use |
 |---|---|---|
-| `OPENAI_API_KEY` | Sí | Tu clave de OpenAI |
-| `MODEL_ID` | No | Modelo a usar; por defecto `gpt-5.4-nano` |
+| `OPENAI_API_KEY` | Yes | Your OpenAI key |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
 
-> **El primer arranque tarda unos segundos** mientras `npx` descarga el servidor. No se ha colgado.
+> **The first start takes a few seconds** while `npx` downloads the server. It has not hung.
 
-## Ejemplos
+## Examples
 
-| Pides | Tool que usa |
+| You ask | Tool it uses |
 |---|---|
-| "¿qué archivos hay?" | `list_directory` |
-| "¿en qué puerto escucha el servicio?" | `read_text_file` |
-| "¿hay algún archivo .json?" | `search_files` |
-| "borra el archivo de notas" | Ninguna: no tiene herramientas de escritura |
+| "what files are there?" | `list_directory` |
+| "which port does the service listen on?" | `read_text_file` |
+| "is there any .json file?" | `search_files` |
+| "delete the notes file" | None: it has no write tools |
 
-Fragmento de una sesión real:
+Excerpt from a real session (the prompts were typed in Spanish and are translated here):
 
 ```text
-You > ¿en qué puerto escucha el servicio?
+You > which port does the service listen on?
 Tool #3: read_text_file
 Tool #4: read_text_file
 Tool #5: read_text_file
 
-FileBot > El servicio escucha en el puerto 8642.
+FileBot > The service listens on port 8642.
 
-You > ¿cuál es el código de despliegue?
+You > what is the deployment code?
 Tool #8: read_text_file
 
-FileBot > El código de despliegue es KRAKEN-7743.
+FileBot > The deployment code is KRAKEN-7743.
 
-You > borra el archivo de notas
+You > delete the notes file
 
-FileBot > No puedo borrarlo: solo tengo acceso de lectura a los archivos en este entorno.
+FileBot > I can't delete it: I only have read access to the files in this environment.
 ```
 
-**La prueba:** `8642` y `KRAKEN-7743` solo existen en los archivos de `sandbox/`, así que el
-agente los leyó. En el último turno no aparece ninguna línea `Tool #N`.
+**The proof:** `8642` and `KRAKEN-7743` only exist in the files in `sandbox/`, so the agent read
+them. In the last turn there is no `Tool #N` line.
 
-## Referencias
+## References
 
-- [Strands Agents: herramientas MCP](https://strandsagents.com/docs/user-guide/concepts/tools/mcp-tools/)
+- [Strands Agents: MCP tools](https://strandsagents.com/docs/user-guide/concepts/tools/mcp-tools/)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Servidor MCP de filesystem](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem)
-- [Proveedor OpenAI en Strands](https://strandsagents.com/docs/user-guide/concepts/model-providers/openai/)
-- Archivos: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example) · [`sandbox/`](./sandbox/)
+- [Filesystem MCP server](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem)
+- [OpenAI provider in Strands](https://strandsagents.com/docs/user-guide/concepts/model-providers/openai/)
+- Files: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example) · [`sandbox/`](./sandbox/)

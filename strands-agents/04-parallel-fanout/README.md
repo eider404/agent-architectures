@@ -1,17 +1,17 @@
-# 04 · Abanico paralelo de agentes (fan-out / fan-in)
+# 04 · Parallel agent fan-out (fan-out / fan-in)
 
-Tres agentes analizan **la misma** propuesta a la vez (pros, contras y riesgos). Un cuarto espera
-a los tres y da un veredicto. Sirve para ver cómo ejecutar agentes en paralelo cuando no dependen
-entre sí: el tiempo total se acerca al de la rama más lenta en vez de a la suma.
+Three agents analyze **the same** proposal at once (pros, cons and risks). A fourth waits for all
+three and gives a verdict. It shows how to run agents in parallel when they do not depend on each
+other: the total time approaches that of the slowest branch instead of the sum.
 
-> **Diferencia con `03`:** la topología. Donde había una fila, ahora hay un abanico con
+> **Difference with `03`:** the topology. Where there was a line, there is now a fan with
 > `asyncio.gather`.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    P(["Propuesta"]) --> PR["pros"]
+    P(["Proposal"]) --> PR["pros"]
     P --> CO["cons"]
     P --> RI["risks"]
     PR --> S["synthesis"]
@@ -22,47 +22,48 @@ flowchart LR
 
 | | |
 |---|---|
-| Patrón | Fan-out / fan-in: 3 ramas en paralelo y 1 agregador |
-| Piezas de Strands | `Agent`, `Agent.invoke_async`, `OpenAIResponsesModel`, `callback_handler=None` |
-| Herramientas | Ninguna |
-| Modelo | `gpt-5.4-nano` (cambiable con `MODEL_ID`) |
+| Pattern | Fan-out / fan-in: 3 parallel branches and 1 aggregator |
+| Strands pieces | `Agent`, `Agent.invoke_async`, `OpenAIResponsesModel`, `callback_handler=None` |
+| Tools | None |
+| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
 
-**Ideas clave**
+**Key ideas**
 
-- **El paralelismo lo pone `asyncio`, no Strands.** Todo el abanico es un `asyncio.gather` sobre
-  `invoke_async`, en un solo hilo.
-- **Se paraleliza lo que no se necesita entre sí.** En `03` cada etapa esperaba a la anterior. Aquí
-  ninguna rama necesita a otra.
-- **Un agente por rama.** Reusar la misma instancia de `Agent` en dos ramas a la vez lanza un
-  error. Por eso `branch()` crea una instancia por rama.
-- **Sin streaming por obligación.** Con tres respuestas a la vez, la consola quedaría mezclada.
+- **The parallelism comes from `asyncio`, not Strands.** The whole fan is an `asyncio.gather` over
+  `invoke_async`, on a single thread.
+- **You parallelize what does not need each other.** In `03` each stage waited for the previous
+  one. Here no branch needs another.
+- **One agent per branch.** Reusing the same `Agent` instance in two branches at once raises an
+  error. That is why `branch()` creates one instance per branch.
+- **No streaming, by necessity.** With three responses at once, the console would get mixed up.
 
-## Configuración y ejecución
+## Setup and running
 
-Requisitos: Python 3.10+ y una `OPENAI_API_KEY`. No añade dependencias: `asyncio` es de la
-biblioteca estándar.
+Requirements: Python 3.10+ and an `OPENAI_API_KEY`. It adds no dependencies: `asyncio` is in the
+standard library.
 
 ```bash
 cd strands-agents/04-parallel-fanout
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # pon tu OPENAI_API_KEY
-.venv/bin/python agent.py     # 'exit' para salir
+cp .env.example .env          # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py     # 'exit' to quit
 ```
 
-| Variable | Obligatoria | Uso |
+| Variable | Required | Use |
 |---|---|---|
-| `OPENAI_API_KEY` | Sí | Tu clave de OpenAI |
-| `MODEL_ID` | No | Modelo a usar; por defecto `gpt-5.4-nano` |
+| `OPENAI_API_KEY` | Yes | Your OpenAI key |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
 
-> **Las líneas de tiempo salen en el orden en que termina cada rama**, no en el orden en que están
-> declaradas. Ese desorden muestra que corrieron a la vez.
+> **The timing lines come out in the order each branch finishes**, not in the order they are
+> declared. That jumbled order shows they ran at the same time.
 
-## Ejemplos
+## Examples
 
-Escribe una propuesta (`Proposal >`). Fragmento real:
+Type a proposal (`Proposal >`). Real excerpt (the proposal was typed in Spanish and the output was
+in Spanish; both are translated here):
 
 ```text
-Proposal > adoptar la semana laboral de 4 dias
+Proposal > adopt the 4-day work week
 
 [fan-out] lanzando 3 analistas en paralelo...
   risks  ──►   1.4s
@@ -72,17 +73,17 @@ Proposal > adoptar la semana laboral de 4 dias
 
 [fan-in] synthesis ──►
 VERDICT: conditional
-- Beneficios potenciales: mayor productividad/concentración y posible reducción de ausentismo... (P1, P2)
-- La viabilidad operativa depende del contexto... (C1, R2)
+- Potential benefits: higher productivity/focus and possibly lower absenteeism... (P1, P2)
+- Operational feasibility depends on the context... (C1, R2)
 ```
 
-**La prueba:** el reloj. En otra propuesta de la misma sesión, el total fue **4.4 s** cuando las
-ramas sumaban **9.9 s**. Además, el veredicto cita etiquetas (`P1`, `C1`, `R2`) que solo existen
-en las salidas de las ramas.
+**The proof:** the clock. On another proposal in the same session, the total was **4.4 s** when
+the branches added up to **9.9 s**. Also, the verdict cites labels (`P1`, `C1`, `R2`) that only
+exist in the branch outputs.
 
-## Referencias
+## References
 
-- [`asyncio.gather` en la documentación de Python](https://docs.python.org/3/library/asyncio-task.html#asyncio.gather)
-- [Patrones multi-agente en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/) (`07-agent-graph` repite este abanico con `GraphBuilder`)
-- [Proveedor OpenAI en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
-- Archivos: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)
+- [`asyncio.gather` in the Python documentation](https://docs.python.org/3/library/asyncio-task.html#asyncio.gather)
+- [Multi-agent patterns in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/) (`07-agent-graph` repeats this fan with `GraphBuilder`)
+- [OpenAI provider in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
+- Files: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)

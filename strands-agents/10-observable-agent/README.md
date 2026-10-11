@@ -1,80 +1,82 @@
-# 10 · Agente observable
+# 10 · Observable agent
 
-Concierge es un asistente de reservas de hotel con tres herramientas (`check_availability`,
-`book_room`, `cancel_booking`) que **deja un rastro de todo lo que pasa en cada turno**: qué tool
-llamó, con qué datos, cuánto tardó y cuántos tokens gastó. El rastro sale de un observador externo
-(`observability.py`) que el agente no conoce. Con `--otel`, además exporta las trazas
-OpenTelemetry que Strands ya emitía.
+Concierge is a hotel-booking assistant with three tools (`check_availability`, `book_room`,
+`cancel_booking`) that **leaves a trail of everything that happens in each turn**: which tool it
+called, with what data, how long it took and how many tokens it spent. The trail comes from an
+external observer (`observability.py`) that the agent knows nothing about. With `--otel`, it also
+exports the OpenTelemetry traces that Strands was already emitting.
 
-> **Diferencia con `09`:** en lugar de guardar la conversación, se registra lo que ocurre durante el
-> turno. El `Agent(...)` de `01` más un parámetro: `hooks=[TraceHooks(...)]`.
+> **Difference with `09`:** instead of saving the conversation, it records what happens during the
+> turn. The `Agent(...)` from `01` plus one parameter: `hooks=[TraceHooks(...)]`.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    U(["Petición"]) --> A["Agent"]
-    A --> M["modelo"]
-    A --> T["tools del hotel"]
-    A -. "6 eventos" .-> H["TraceHooks"]
-    H --> C(["consola [trace]"])
+    U(["Request"]) --> A["Agent"]
+    A --> M["model"]
+    A --> T["hotel tools"]
+    A -. "6 events" .-> H["TraceHooks"]
+    H --> C(["console [trace]"])
     H --> J[("trace.jsonl")]
-    A -. "--otel" .-> O(["spans OpenTelemetry"])
+    A -. "--otel" .-> O(["OpenTelemetry spans"])
 ```
 
 | | |
 |---|---|
-| Patrón | Agente único con observabilidad externa |
-| Piezas de Strands | `HookProvider`, `HookRegistry.add_callback`, eventos `Before/After*Event`, `StrandsTelemetry` |
-| Herramientas | 3: `check_availability`, `book_room`, `cancel_booking` |
-| Archivos de código | `agent.py` + `observability.py` |
-| Modelo | `gpt-5.4-mini` (cambiable con `MODEL_ID`) |
+| Pattern | Single agent with external observability |
+| Strands pieces | `HookProvider`, `HookRegistry.add_callback`, `Before/After*Event` events, `StrandsTelemetry` |
+| Tools | 3: `check_availability`, `book_room`, `cancel_booking` |
+| Code files | `agent.py` + `observability.py` |
+| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
 
-**Ideas clave**
+**Key ideas**
 
-- **El observador no toca al agente.** No hay ni un `print` dentro de las tools. Quitar
-  `hooks=[...]` deja el agente igual y sin rastro.
-- **Seis eventos bastan:** inicio y fin del turno, de cada llamada al modelo y de cada tool.
-  Responden a qué se llamó, cuánto costó y cómo terminó el turno.
-- **`status="success"` no es éxito de negocio.** Una tool que devuelve `"Unknown booking code"`
-  sale como `success`: el SDK solo mide si la función lanzó. Hay que leer el `result`.
-- **Las métricas del SDK son acumuladas.** `TraceHooks` resta el turno anterior para mostrar el
-  coste de cada turno. OpenTelemetry ya corría desde `01`; `--otel` solo le pone un exportador.
+- **The observer does not touch the agent.** There is not a single `print` inside the tools.
+  Removing `hooks=[...]` leaves the agent the same and with no trail.
+- **Six events are enough:** start and end of the turn, of each model call and of each tool. They
+  answer what was called, what it cost and how the turn ended.
+- **`status="success"` is not business success.** A tool that returns `"Unknown booking code"`
+  comes out as `success`: the SDK only measures whether the function raised. You have to read the
+  `result`.
+- **The SDK's metrics are cumulative.** `TraceHooks` subtracts the previous turn to show each
+  turn's cost. OpenTelemetry has been running since `01`; `--otel` only adds an exporter to it.
 
-## Configuración y ejecución
+## Setup and running
 
-Requisitos: Python 3.10+ y una `OPENAI_API_KEY`. Mismas dependencias que `09`
-(`opentelemetry-sdk` ya viene con `strands-agents`).
+Requirements: Python 3.10+ and an `OPENAI_API_KEY`. Same dependencies as `09`
+(`opentelemetry-sdk` already comes with `strands-agents`).
 
 ```bash
 cd strands-agents/10-observable-agent
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env              # pon tu OPENAI_API_KEY
-.venv/bin/python agent.py         # rastro en consola + trace.jsonl; 'exit' para salir
-.venv/bin/python agent.py --otel  # además, los spans OpenTelemetry por consola
+cp .env.example .env              # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py         # trail on the console + trace.jsonl; 'exit' to quit
+.venv/bin/python agent.py --otel  # plus the OpenTelemetry spans on the console
 ```
 
-| Variable | Obligatoria | Uso |
+| Variable | Required | Use |
 |---|---|---|
-| `OPENAI_API_KEY` | Sí | Tu clave de OpenAI |
-| `MODEL_ID` | No | Modelo a usar; por defecto `gpt-5.4-mini` |
+| `OPENAI_API_KEY` | Yes | Your OpenAI key |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
 
-> **`trace.jsonl` guarda prompts y resultados en claro** (y `--otel` imprime la conversación
-> entera). Está en `.gitignore`; bórralo con `rm -f trace.jsonl`.
+> **`trace.jsonl` stores prompts and results in plain text** (and `--otel` prints the whole
+> conversation). It is in `.gitignore`; delete it with `rm -f trace.jsonl`.
 
-## Ejemplos
+## Examples
 
-| Pides | Tool llamada | Resultado |
+| You ask | Tool called | Result |
 |---|---|---|
-| "¿hay sitio el 4 de octubre?" | `check_availability` | `7 rooms free on 2026-10-04.` |
-| "cancela la reserva ZZZ-0000" | `cancel_booking` | `Unknown booking code` (con `status="success"`) |
-| "¿qué eres?" | Ninguna | `cycles=1 tools=0` |
+| "is there room on October 4?" | `check_availability` | `7 rooms free on 2026-10-04.` |
+| "cancel booking ZZZ-0000" | `cancel_booking` | `Unknown booking code` (with `status="success"`) |
+| "what are you?" | None | `cycles=1 tools=0` |
 
-Fragmento real contra `gpt-5.4-nano`:
+Real excerpt against `gpt-5.4-nano` (the prompt was typed in Spanish and the answer was in
+Spanish; both are translated here):
 
 ```text
-You > hay sitio el 4 de octubre?
-[trace] 001 turn=1 before_invocation  prompt="hay sitio el 4 de octubre?"
+You > is there room on October 4?
+[trace] 001 turn=1 before_invocation  prompt="is there room on October 4?"
 [trace] 002 turn=1 before_model_call  messages=1
 [trace] 003 turn=1 after_model_call   stop_reason="tool_use"
 [trace] 004 turn=1 before_tool_call   tool="check_availability"  input={"date": "2026-10-04"}
@@ -84,16 +86,16 @@ You > hay sitio el 4 de octubre?
 [trace] 007 turn=1 after_model_call   stop_reason="end_turn"
 [trace] 008 turn=1 after_invocation   cycles=2  tools=1  tokens=624
 
-Concierge > Sí, hay sitio el **4 de octubre de 2026** (quedan **7 habitaciones libres**).
+Concierge > Yes, there is room on **October 4, 2026** (**7 rooms left**).
 ```
 
-**La prueba:** cada línea `[trace]` la escribe el hook desde un evento del SDK, y la misma línea
-queda como JSON en `trace.jsonl` (`jq . trace.jsonl`). Las `7` habitaciones solo existen en un
-`dict` de `agent.py`.
+**The proof:** each `[trace]` line is written by the hook from an SDK event, and the same line is
+stored as JSON in `trace.jsonl` (`jq . trace.jsonl`). The `7` rooms only exist in a `dict` in
+`agent.py`.
 
-## Referencias
+## References
 
-- [Hooks en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/hooks/)
-- [Observabilidad en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/observability/)
-- [Proveedor OpenAI en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
-- Archivos: [`agent.py`](./agent.py) · [`observability.py`](./observability.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)
+- [Hooks in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/hooks/)
+- [Observability in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/observability/)
+- [OpenAI provider in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
+- Files: [`agent.py`](./agent.py) · [`observability.py`](./observability.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)

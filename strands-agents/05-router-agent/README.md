@@ -1,90 +1,91 @@
-# 05 · Router de agentes (clasificar y despachar)
+# 05 · Agent router (classify and dispatch)
 
-Un agente de soporte que primero **clasifica** la petición (facturación, técnico, ventas u otro) y
-después la pasa a **un único** especialista. La clasificación sale como un objeto tipado y
-validado, no como texto libre. Sirve para ver cómo elegir la ruta de una petición con un coste
-fijo: dos llamadas al modelo, haya 4 destinos o 40.
+A support agent that first **classifies** the request (billing, technical, sales or other) and
+then hands it to **a single** specialist. The classification comes out as a typed, validated
+object, not free text. It shows how to pick a request's route at a fixed cost: two model calls,
+whether there are 4 destinations or 40.
 
-> **Diferencia con `04`:** en lugar de ejecutar todas las ramas, se decide cuál ejecutar y corre
-> solo una.
+> **Difference with `04`:** instead of running all the branches, it decides which one to run and
+> only that one runs.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    U(["Petición"]) --> C["classifier"]
+    U(["Request"]) --> C["classifier"]
     C -->|"Route(category, reason)"| D{"SPECIALISTS[category]"}
     D --> B["billing"]
     D -.-> T["technical"]
     D -.-> S["sales"]
     D -.-> O["other"]
-    B --> R(["Respuesta"])
+    B --> R(["Response"])
 ```
 
 | | |
 |---|---|
-| Patrón | Router: el modelo clasifica y el código despacha |
-| Piezas de Strands | `Agent`, `structured_output_model=`, `AgentResult.structured_output`, `OpenAIResponsesModel` |
-| Herramientas | Ninguna escrita a mano |
-| Modelo | `gpt-5.4-nano` (cambiable con `MODEL_ID`) |
+| Pattern | Router: the model classifies and the code dispatches |
+| Strands pieces | `Agent`, `structured_output_model=`, `AgentResult.structured_output`, `OpenAIResponsesModel` |
+| Tools | None written by hand |
+| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
 
-**Ideas clave**
+**Key ideas**
 
-- **Un router es una salida estructurada y un `dict`.** `route = classifier(..., structured_output_model=Route).structured_output`
-  y luego `SPECIALISTS[route.category](request)`.
-- **El `Enum` cierra los destinos.** El modelo no puede inventar una quinta categoría. Si lo
-  intenta, Pydantic lo rechaza y el SDK le pide que corrija.
-- **El criterio vive en `Field(description=...)`.** Para ajustar la clasificación se edita la
-  descripción, no se añade un `if`.
-- **Cuidado con `str(result)`.** En una llamada con esquema devuelve el JSON. Para obtener el
-  objeto hay que leer `.structured_output`.
+- **A router is a structured output and a `dict`.** `route = classifier(..., structured_output_model=Route).structured_output`
+  and then `SPECIALISTS[route.category](request)`.
+- **The `Enum` closes the destinations.** The model cannot invent a fifth category. If it tries,
+  Pydantic rejects it and the SDK asks it to correct itself.
+- **The criterion lives in `Field(description=...)`.** To tune the classification you edit the
+  description; you do not add an `if`.
+- **Beware of `str(result)`.** On a call with a schema it returns the JSON. To get the object you
+  have to read `.structured_output`.
 
-## Configuración y ejecución
+## Setup and running
 
-Requisitos: Python 3.10+ y una `OPENAI_API_KEY`. Añade `pydantic` al `requirements.txt` (ya venía
-con `strands-agents`).
+Requirements: Python 3.10+ and an `OPENAI_API_KEY`. It adds `pydantic` to `requirements.txt` (it
+already came with `strands-agents`).
 
 ```bash
 cd strands-agents/05-router-agent
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # pon tu OPENAI_API_KEY
-.venv/bin/python agent.py     # 'exit' para salir
+cp .env.example .env          # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py     # 'exit' to quit
 ```
 
-| Variable | Obligatoria | Uso |
+| Variable | Required | Use |
 |---|---|---|
-| `OPENAI_API_KEY` | Sí | Tu clave de OpenAI |
-| `MODEL_ID` | No | Modelo a usar; por defecto `gpt-5.4-nano` |
+| `OPENAI_API_KEY` | Yes | Your OpenAI key |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
 
-> **La línea `[router]` sale antes que la respuesta.** Así, si algo sale mal, sabes si falló la
-> clasificación o el especialista.
+> **The `[router]` line comes out before the response.** That way, if something goes wrong, you
+> know whether the classification or the specialist failed.
 
-## Ejemplos
+## Examples
 
-| Pides | Ruta |
+| You ask | Route |
 |---|---|
-| "me habéis cobrado dos veces la factura de marzo" | `billing` |
-| "la app peta al abrir desde la última actualización" | `technical` |
-| "¿cuánto cuesta subir al plan de equipos?" | `sales` |
-| "¿trabajáis los festivos?" | `other` |
+| "you charged me twice for the March invoice" | `billing` |
+| "the app crashes on open since the last update" | `technical` |
+| "how much does it cost to upgrade to the team plan?" | `sales` |
+| "do you work on public holidays?" | `other` |
 
-Fragmento real (el caso frontera: dice "error" pero es de facturación):
+Real excerpt (the borderline case: it says "error" but it is about billing; the request was typed
+in Spanish and the output was in Spanish, both translated here):
 
 ```text
-Request > me han cobrado de más por culpa de un error de la app
+Request > I was overcharged because of an error in the app
 
-[router] billing ──► Cobro excesivo por error en la app; solicitar ajuste/reembolso
-Lamento el error. Para revisarlo, necesito: fecha y hora del cobro, importe, moneda...
+[router] billing ──► Overcharge due to an app error; request an adjustment/refund
+I'm sorry about the error. To review it, I need: date and time of the charge, amount, currency...
 ```
 
-**La prueba:** tras una petición, los historiales quedan en `classifier 3`, `billing 2` y
-`technical/sales/other 0`. Solo corrió una rama. El `reason` lo escribe el modelo: no está en
+**The proof:** after one request, the histories are left at `classifier 3`, `billing 2` and
+`technical/sales/other 0`. Only one branch ran. The `reason` is written by the model: it is not in
 `agent.py`.
 
-## Referencias
+## References
 
-- [Salida estructurada en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/structured-output/)
+- [Structured output in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/structured-output/)
 - [Pydantic](https://docs.pydantic.dev/latest/)
-- [Patrones multi-agente en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/) (`07-agent-graph` repite este triage con `GraphBuilder`)
-- [Proveedor OpenAI en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
-- Archivos: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)
+- [Multi-agent patterns in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/) (`07-agent-graph` repeats this triage with `GraphBuilder`)
+- [OpenAI provider in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
+- Files: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)

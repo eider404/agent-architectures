@@ -1,70 +1,72 @@
-# 08 · Enjambre de agentes
+# 08 · Agent swarm
 
-Un pequeño equipo de desarrollo de tres agentes (`researcher`, `coder`, `reviewer`) que se pasan
-el control entre ellos para escribir una función Python. No hay orquestador ni conexiones: cada
-agente decide a quién le toca después. Sirve para ver una coordinación sin control central, donde
-el revisor puede devolver el trabajo al coder, algo que el grafo de `07` no puede hacer.
+A small development team of three agents (`researcher`, `coder`, `reviewer`) that hand control to
+each other to write a Python function. There is no orchestrator and no connections: each agent
+decides who goes next. It shows coordination with no central control, where the reviewer can send
+the work back to the coder, something the graph in `07` cannot do.
 
-> **Diferencia con `07`:** desaparecen las aristas. La arquitectura es una lista de agentes y unos
-> topes; el recorrido lo deciden los propios agentes mientras corren.
+> **Difference with `07`:** the edges are gone. The architecture is a list of agents and a few
+> limits; the agents themselves decide the path while they run.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    U(["Tarea"]) --> RS["researcher"]
+    U(["Task"]) --> RS["researcher"]
     RS -->|"handoff"| C["coder"]
-    C -->|"handoff + código"| RV["reviewer"]
-    RV -.->|"defecto"| C
-    RV --> A(["Respuesta del último que habla"])
+    C -->|"handoff + code"| RV["reviewer"]
+    RV -.->|"defect"| C
+    RV --> A(["Response from the last one to speak"])
 ```
 
 | | |
 |---|---|
-| Patrón | Enjambre: pares autónomos que se traspasan el control |
-| Piezas de Strands | `Swarm`, `Agent(name=, description=)`, `swarm.stream_async()`, `SwarmResult`, la tool inyectada `handoff_to_agent` |
-| Herramientas | Ninguna escrita a mano: el `Swarm` inyecta `handoff_to_agent` en cada agente |
-| Modelo | `gpt-5.4-nano` (cambiable con `MODEL_ID`) |
+| Pattern | Swarm: autonomous peers that hand control to each other |
+| Strands pieces | `Swarm`, `Agent(name=, description=)`, `swarm.stream_async()`, `SwarmResult`, the injected `handoff_to_agent` tool |
+| Tools | None written by hand: the `Swarm` injects `handoff_to_agent` into each agent |
+| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
 
-**Ideas clave**
+**Key ideas**
 
-- **`description=` es el criterio de enrutado.** El `Swarm` la muestra a cada agente en la lista
-  de compañeros disponibles; es lo único con lo que eligen a quién pasar el turno.
-- **El swarm termina cuando un agente se calla.** Si no llama a `handoff_to_agent`, la tarea se da
-  por acabada. La condición de parada vive en `REVIEWER_PROMPT`, no en el código.
-- **Los topes son obligatorios.** Sin orquestador, `max_iterations=6` y el detector de traspasos
-  repetidos son lo único que acota la corrida: como mucho 12 llamadas. Un estado `failed` significa
-  que un tope la cortó.
-- **El traspaso no lleva la salida anterior.** Solo viaja el mensaje y el `context` que el agente
-  adjunta; por eso `CODER_PROMPT` exige pegar la función entera en el traspaso.
+- **`description=` is the routing criterion.** The `Swarm` shows it to each agent in the list of
+  available teammates; it is the only thing they use to choose who gets the turn.
+- **The swarm ends when an agent goes quiet.** If it does not call `handoff_to_agent`, the task is
+  considered finished. The stop condition lives in `REVIEWER_PROMPT`, not in the code.
+- **The limits are mandatory.** With no orchestrator, `max_iterations=6` and the repeated-handoff
+  detector are the only things that bound the run: at most 12 calls. A `failed` status means a
+  limit cut it short.
+- **The handoff does not carry the previous output.** Only the message and the `context` the agent
+  attaches travel along; that is why `CODER_PROMPT` demands pasting the whole function into the
+  handoff.
 
-## Configuración y ejecución
+## Setup and running
 
-Requisitos: Python 3.10+ y una `OPENAI_API_KEY`. Mismas dependencias que `07`.
+Requirements: Python 3.10+ and an `OPENAI_API_KEY`. Same dependencies as `07`.
 
 ```bash
 cd strands-agents/08-agent-swarm
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # pon tu OPENAI_API_KEY
-.venv/bin/python agent.py     # 'exit' para salir
+cp .env.example .env          # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py     # 'exit' to quit
 ```
 
-| Variable | Obligatoria | Uso |
+| Variable | Required | Use |
 |---|---|---|
-| `OPENAI_API_KEY` | Sí | Tu clave de OpenAI |
-| `MODEL_ID` | No | Modelo a usar; por defecto `gpt-5.4-nano` |
+| `OPENAI_API_KEY` | Yes | Your OpenAI key |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
 
-> **Aquí la traza sale durante la corrida.** El motivo de cada traspaso solo existe en el evento
-> `multiagent_handoff` del stream, no en el resultado final.
+> **Here the trace comes out during the run.** The reason for each handoff only exists in the
+> stream's `multiagent_handoff` event, not in the final result.
 
-## Ejemplos
+## Examples
 
-| Pides | Recorrido real |
+| You ask | Actual path |
 |---|---|
-| "una función que agrupe una lista de diccionarios por una clave, donde a algunos les falta" | `researcher → coder → reviewer → coder → reviewer` (5 turnos) |
-| "una función que parsee una duración como '1h30m' a segundos" | `researcher → coder → reviewer` (3 turnos) |
+| "a function that groups a list of dicts by a key, where some are missing it" | `researcher → coder → reviewer → coder → reviewer` (5 turns) |
+| "a function that parses a duration like '1h30m' into seconds" | `researcher → coder → reviewer` (3 turns) |
 
-Fragmento real contra `gpt-5.4-nano` (primera tarea):
+Real excerpt against `gpt-5.4-nano` (first task; it was typed in Spanish and the final answer was
+in Spanish, both translated here; the `pensando...` lines are printed by `agent.py` as-is):
 
 ```text
 [researcher] pensando...
@@ -78,16 +80,16 @@ Fragmento real contra `gpt-5.4-nano` (primera tarea):
 [reviewer] pensando...
 
 [swarm] researcher ──► coder ──► reviewer ──► coder ──► reviewer  (completed)
-✅ **Aprobado.** Mantiene el bucket `default_bucket` vía `setdefault`...
+✅ **Approved.** It keeps the `default_bucket` bucket via `setdefault`...
 ```
 
-**La prueba:** `coder` y `reviewer` aparecen dos veces en `node_history`, un ciclo que ninguna línea
-de `agent.py` pidió. El código que escribe `coder` nunca se ejecuta: el "Aprobado" es la opinión de
-otro LLM, no una prueba de que la función funcione.
+**The proof:** `coder` and `reviewer` appear twice in `node_history`, a cycle that no line of
+`agent.py` asked for. The code `coder` writes is never run: the "Approved" is another LLM's
+opinion, not proof that the function works.
 
-## Referencias
+## References
 
-- [Swarm en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/swarm/)
-- [Patrones multi-agente en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/) (`07-agent-graph` es la alternativa con topología fija)
-- [Proveedor OpenAI en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
-- Archivos: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)
+- [Swarm in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/swarm/)
+- [Multi-agent patterns in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/multi-agent/multi-agent-patterns/) (`07-agent-graph` is the alternative with a fixed topology)
+- [OpenAI provider in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
+- Files: [`agent.py`](./agent.py) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)

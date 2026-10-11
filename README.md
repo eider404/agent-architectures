@@ -1,58 +1,58 @@
-# Arquitecturas de agentes
+# Agent Architecture Examples
 
-12 ejemplos mínimos y autocontenidos de **arquitecturas de agentes de IA**. Cada carpeta muestra *una* arquitectura en un solo archivo (`agent.py`, ~70 líneas) y cada ejemplo cambia exactamente una cosa respecto al anterior, para que la diferencia sea la lección.
+12 minimal, self-contained examples of **AI agent architectures**. Each folder shows *one* architecture in a single file (`agent.py`, ~70 lines) and each example changes exactly one thing relative to the previous one, so that the difference is the lesson.
 
-No resuelven problemas reales: están pensados para leerse de arriba abajo y entender cómo se arma cada patrón.
+They don't solve real problems: they are meant to be read top to bottom to understand how each pattern is put together.
 
-## Los 12 ejemplos
+## The 12 examples
 
-| # | Ejemplo | Arquitectura |
+| # | Example | Architecture |
 |---|---------|--------------|
-| 01 | [`basic-tool-agent`](strands-agents/01-basic-tool-agent) | Agente con herramientas propias (`@tool`) |
-| 02 | [`mcp-agent`](strands-agents/02-mcp-agent) | Herramientas obtenidas de un servidor MCP |
-| 03 | [`sequential-pipeline`](strands-agents/03-sequential-pipeline) | Agentes encadenados en fila |
-| 04 | [`parallel-fanout`](strands-agents/04-parallel-fanout) | Agentes en paralelo (fan-out / fan-in) |
-| 05 | [`router-agent`](strands-agents/05-router-agent) | Clasificar y despachar a un especialista |
-| 06 | [`agents-as-tools`](strands-agents/06-agents-as-tools) | Agentes usados como herramientas de otro agente |
-| 07 | [`agent-graph`](strands-agents/07-agent-graph) | Grafo de agentes con ramas condicionales |
-| 08 | [`agent-swarm`](strands-agents/08-agent-swarm) | Enjambre autónomo sin orquestador |
-| 09 | [`persistent-session-agent`](strands-agents/09-persistent-session-agent) | Conversación que sobrevive al reinicio |
-| 10 | [`observable-agent`](strands-agents/10-observable-agent) | Trazas de herramientas, tiempos y tokens |
-| 11 | [`human-in-the-loop`](strands-agents/11-human-in-the-loop) | Aprobación humana antes de actuar |
-| 12 | [`structured-output`](strands-agents/12-structured-output) | Salida tipada y validada con Pydantic |
+| 01 | [`basic-tool-agent`](strands-agents/01-basic-tool-agent) | Agent with its own tools (`@tool`) |
+| 02 | [`mcp-agent`](strands-agents/02-mcp-agent) | Tools obtained from an MCP server |
+| 03 | [`sequential-pipeline`](strands-agents/03-sequential-pipeline) | Agents chained in a row |
+| 04 | [`parallel-fanout`](strands-agents/04-parallel-fanout) | Agents in parallel (fan-out / fan-in) |
+| 05 | [`router-agent`](strands-agents/05-router-agent) | Classify and dispatch to a specialist |
+| 06 | [`agents-as-tools`](strands-agents/06-agents-as-tools) | Agents used as another agent's tools |
+| 07 | [`agent-graph`](strands-agents/07-agent-graph) | Agent graph with conditional branches |
+| 08 | [`agent-swarm`](strands-agents/08-agent-swarm) | Autonomous swarm with no orchestrator |
+| 09 | [`persistent-session-agent`](strands-agents/09-persistent-session-agent) | Conversation that survives a restart |
+| 10 | [`observable-agent`](strands-agents/10-observable-agent) | Tool traces, timings and tokens |
+| 11 | [`human-in-the-loop`](strands-agents/11-human-in-the-loop) | Human approval before acting |
+| 12 | [`structured-output`](strands-agents/12-structured-output) | Typed output validated with Pydantic |
 
-## Cómo probarlo
+## How to try it
 
-Necesitas **Python 3.10+** y una [API key de OpenAI](https://platform.openai.com/api-keys). No hace falta AWS. El ejemplo `02` además requiere **Node.js ≥ 18**.
+You need **Python 3.10+** and an [OpenAI API key](https://platform.openai.com/api-keys). AWS is not needed. Example `02` also requires **Node.js ≥ 18**.
 
 ```bash
-git clone <url-del-repo>
+git clone <repo-url>
 cd <repo>/strands-agents/01-basic-tool-agent
 
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env              # pon tu OPENAI_API_KEY dentro
-.venv/bin/python agent.py         # escribe 'exit' para salir
+cp .env.example .env              # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py         # type 'exit' to quit
 ```
 
-Para probar otro ejemplo, cambia de carpeta y repite los mismos pasos: cada uno tiene su propio `requirements.txt`, `.env.example` y `README.md` con el diagrama, una conversación de ejemplo y qué probar. Para usar otro modelo en una ejecución:
+To try another example, change folder and repeat the same steps: each one has its own `requirements.txt`, `.env.example` and `README.md` with the diagram, a sample conversation and what to try. To use another model for a single run:
 
 ```bash
 MODEL_ID=gpt-5.4 .venv/bin/python agent.py
 ```
 
-## Estructura
+## Structure
 
 ```
 strands-agents/
-└── NN-nombre/
-    ├── agent.py            # todo el ejemplo
-    ├── requirements.txt    # dependencias directas
-    ├── .env.example        # variables necesarias (sin valores reales)
-    └── README.md           # arquitectura, ejecución y transcripción
+└── NN-name/
+    ├── agent.py            # the whole example
+    ├── requirements.txt    # direct dependencies
+    ├── .env.example        # required variables (no real values)
+    └── README.md           # architecture, running and transcript
 ```
 
-No hay build, tests ni dependencias compartidas a nivel de repo: cada carpeta se instala y se ejecuta por separado.
+There is no build, no tests and no shared dependencies at the repo level: each folder is installed and run separately.
 
-## Por dónde empezar
+## Where to start
 
-Lee los ejemplos en orden. El `01` es la base; del `03` al `08` se compone cada vez más de un agente (fila, abanico, router, jerarquía, grafo, enjambre); del `09` al `12` se añaden persistencia, observabilidad, control humano y salida estructurada.
+Read the examples in order. `01` is the base; from `03` to `08` an agent is composed more and more (line, fan, router, hierarchy, graph, swarm); from `09` to `12` persistence, observability, human control and structured output are added.

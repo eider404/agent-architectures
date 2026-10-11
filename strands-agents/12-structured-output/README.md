@@ -1,72 +1,72 @@
-# 12 · Salida estructurada
+# 12 · Structured output
 
-Ledger es un extractor de facturas de un solo agente, sin herramientas: lee un documento de texto
-de `sandbox/` y devuelve un objeto `Invoice` de Pydantic ya validado, no texto. El esquema incluye
-una regla que ningún tipo puede expresar solo: **el total tiene que cuadrar con la suma de las
-líneas**. Si no cuadra, el modelo recibe el error y se corrige dentro de la misma llamada.
+Ledger is a single-agent invoice extractor with no tools: it reads a text document from `sandbox/`
+and returns an already validated Pydantic `Invoice` object, not text. The schema includes a rule
+that no type can express on its own: **the total has to match the sum of the lines**. If it does
+not, the model receives the error and corrects itself within the same call.
 
-> **Diferencia con `11`:** vuelve el agente sin tools, y la salida estructurada de `05` pasa de
-> ser un medio (despachar) a ser el resultado, con un esquema que sí puede fallar.
+> **Difference with `11`:** the agent with no tools is back, and the structured output from `05`
+> goes from being a means (dispatching) to being the result, with a schema that can actually fail.
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
     D(["sandbox/*.txt"]) --> A["agent(doc, structured_output_model=Invoice)"]
-    A --> M["modelo propone Invoice"]
-    M --> V{"Pydantic valida"}
-    V -->|"error: total no cuadra"| M
-    V -->|"ok"| O(["Invoice (objeto Python)"])
+    A --> M["model proposes Invoice"]
+    M --> V{"Pydantic validates"}
+    V -->|"error: total doesn't match"| M
+    V -->|"ok"| O(["Invoice (Python object)"])
 ```
 
 | | |
 |---|---|
-| Patrón | Agente único con salida estructurada y autocorrección |
-| Piezas de Strands | `structured_output_model=`, `result.structured_output` |
-| Herramientas | Ninguna escrita a mano |
-| Modelo | `gpt-5.4-mini` (cambiable con `MODEL_ID`) |
+| Pattern | Single agent with structured output and self-correction |
+| Strands pieces | `structured_output_model=`, `result.structured_output` |
+| Tools | None written by hand |
+| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
 
-**Ideas clave**
+**Key ideas**
 
-- **El reintento lo hace el SDK.** Si Pydantic rechaza el objeto, el error vuelve al modelo y este
-  lo corrige. En `agent.py` no hay `try/except`, ni contador, ni parsing.
-- **Las restricciones simples viajan al modelo; el validador no.** `ge=1` o `min_length=1` van en
-  el JSON Schema. Del `@model_validator` solo llega su mensaje de error, por eso está escrito como
-  instrucción: *"Re-read the document..."*.
-- **El modelo convierte los tipos.** `4 March 2026` pasa a `date` y `$` pasa a `"USD"`: lo hace el
-  LLM, no Pydantic.
-- **Un esquema garantiza forma, no verdad.** Si el modelo lee mal dos importes de forma
-  coherente, el total puede seguir cuadrando.
+- **The SDK does the retry.** If Pydantic rejects the object, the error goes back to the model and
+  it fixes it. In `agent.py` there is no `try/except`, no counter, no parsing.
+- **Simple constraints travel to the model; the validator does not.** `ge=1` or `min_length=1` go
+  into the JSON Schema. From the `@model_validator` only its error message arrives, which is why it
+  is written as an instruction: *"Re-read the document..."*.
+- **The model converts the types.** `4 March 2026` becomes a `date` and `$` becomes `"USD"`: the
+  LLM does this, not Pydantic.
+- **A schema guarantees shape, not truth.** If the model misreads two amounts consistently, the
+  total can still add up.
 
-## Configuración y ejecución
+## Setup and running
 
-Requisitos: Python 3.10+ y una `OPENAI_API_KEY`. Mismas dependencias que `11` (Pydantic ya viene
-con `strands-agents`).
+Requirements: Python 3.10+ and an `OPENAI_API_KEY`. Same dependencies as `11` (Pydantic already
+comes with `strands-agents`).
 
 ```bash
 cd strands-agents/12-structured-output
 python -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp .env.example .env          # pon tu OPENAI_API_KEY
-.venv/bin/python agent.py     # escribe el nombre de un archivo de sandbox/; 'exit' para salir
+cp .env.example .env          # put your OPENAI_API_KEY in it
+.venv/bin/python agent.py     # type the name of a file in sandbox/; 'exit' to quit
 ```
 
-| Variable | Obligatoria | Uso |
+| Variable | Required | Use |
 |---|---|---|
-| `OPENAI_API_KEY` | Sí | Tu clave de OpenAI |
-| `MODEL_ID` | No | Modelo a usar; por defecto `gpt-5.4-mini` |
+| `OPENAI_API_KEY` | Yes | Your OpenAI key |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
 
-> **En una extracción correcta, `stop_reason` es `"tool_use"`, no `"end_turn"`.** El SDK corta el
-> bucle en cuanto el objeto valida.
+> **In a successful extraction, `stop_reason` is `"tool_use"`, not `"end_turn"`.** The SDK cuts the
+> loop as soon as the object validates.
 
-## Ejemplos
+## Examples
 
-| Archivo | Qué tiene de particular | Qué demuestra |
+| File | What is special about it | What it demonstrates |
 |---|---|---|
-| `clean.txt` | Todo impreso, fecha ISO | El caso normal |
-| `shipping.txt` | Envío impreso fuera de la tabla, incluido en el total | La regla `total == Σ items` |
-| `messy.txt` | Fecha en texto (`4 March 2026`), moneda como `$` | Conversión de tipos |
+| `clean.txt` | Everything printed, ISO date | The normal case |
+| `shipping.txt` | Shipping printed outside the table, included in the total | The `total == Σ items` rule |
+| `messy.txt` | Date as text (`4 March 2026`), currency as `$` | Type conversion |
 
-Fragmento real contra `gpt-5.4-nano`:
+Real excerpt against `gpt-5.4-nano`:
 
 ```text
 Invoice > shipping.txt
@@ -84,14 +84,14 @@ Invoice > messy.txt
      total: 180.00  (date)
 ```
 
-**La prueba:** `(date)` es `type(invoice.issued_on).__name__`: el resultado es un objeto Python, no
-texto. En esta corrida real el modelo incluyó el envío a la primera y el validador no llegó a
-saltar; el ciclo de error y corrección se verificó con un modelo simulado, con los mismos números
+**The proof:** `(date)` is `type(invoice.issued_on).__name__`: the result is a Python object, not
+text. In this real run the model included the shipping on the first try and the validator never
+fired; the error-and-correction cycle was verified with a simulated model, with the same numbers
 (`total is 315.0 but the 1 items add up to 300.0`).
 
-## Referencias
+## References
 
-- [Salida estructurada en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/structured-output/)
-- [Pydantic: validadores](https://docs.pydantic.dev/latest/concepts/validators/)
-- [Proveedor OpenAI en Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
-- Archivos: [`agent.py`](./agent.py) · [`sandbox/`](./sandbox/) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)
+- [Structured output in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/agents/structured-output/)
+- [Pydantic: validators](https://docs.pydantic.dev/latest/concepts/validators/)
+- [OpenAI provider in Strands](https://strandsagents.com/latest/documentation/docs/user-guide/concepts/model-providers/openai/)
+- Files: [`agent.py`](./agent.py) · [`sandbox/`](./sandbox/) · [`requirements.txt`](./requirements.txt) · [`.env.example`](./.env.example)

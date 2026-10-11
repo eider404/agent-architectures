@@ -1,4 +1,4 @@
-# Proyecto Kraken
+# Kraken Project
 
-Servicio interno de sincronizacion de catalogos para la region europea.
-Este directorio contiene las notas y la configuracion del despliegue.
+Internal catalog synchronization service for the European region.
+This directory contains the deployment notes and configuration.
