@@ -56,3 +56,7 @@ There is no build, no tests and no shared dependencies at the repo level: each f
 ## Where to start
 
 Read the examples in order. `01` is the base; from `03` to `08` an agent is composed more and more (line, fan, router, hierarchy, graph, swarm); from `09` to `12` persistence, observability, human control and structured output are added.
+
+---
+
+Thanks for reading, and happy building! 👋
