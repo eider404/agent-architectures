@@ -24,7 +24,7 @@ flowchart LR
 | Pattern | Single agent |
 | Strands pieces | `Agent`, `@tool`, `OpenAIResponsesModel` |
 | Tools | `convert_units`, `list_units` (no arguments) |
-| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -49,7 +49,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > To try another model for a single run: `MODEL_ID=gpt-5.4 .venv/bin/python agent.py`.
 

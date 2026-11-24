@@ -6,7 +6,7 @@ from strands import Agent
 from strands.models.openai_responses import OpenAIResponsesModel
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-nano")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 
 PROS_PROMPT = """You are Pros, one of three analysts reading the same proposal at the same time.
 

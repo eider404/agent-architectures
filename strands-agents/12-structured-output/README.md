@@ -24,7 +24,7 @@ flowchart LR
 | Pattern | Single agent with structured output and self-correction |
 | Strands pieces | `structured_output_model=`, `result.structured_output` |
 | Tools | None written by hand |
-| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -53,7 +53,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **In a successful extraction, `stop_reason` is `"tool_use"`, not `"end_turn"`.** The SDK cuts the
 > loop as soon as the object validates.

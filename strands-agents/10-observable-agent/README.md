@@ -28,7 +28,7 @@ flowchart LR
 | Strands pieces | `HookProvider`, `HookRegistry.add_callback`, `Before/After*Event` events, `StrandsTelemetry` |
 | Tools | 3: `check_availability`, `book_room`, `cancel_booking` |
 | Code files | `agent.py` + `observability.py` |
-| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -58,7 +58,7 @@ cp .env.example .env              # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **`trace.jsonl` stores prompts and results in plain text** (and `--otel` prints the whole
 > conversation). It is in `.gitignore`; delete it with `rm -f trace.jsonl`.

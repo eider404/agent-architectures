@@ -24,7 +24,7 @@ flowchart LR
 | Pattern | Swarm: autonomous peers that hand control to each other |
 | Strands pieces | `Swarm`, `Agent(name=, description=)`, `swarm.stream_async()`, `SwarmResult`, the injected `handoff_to_agent` tool |
 | Tools | None written by hand: the `Swarm` injects `handoff_to_agent` into each agent |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -53,7 +53,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **Here the trace comes out during the run.** The reason for each handoff only exists in the
 > stream's `multiagent_handoff` event, not in the final result.

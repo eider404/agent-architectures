@@ -27,7 +27,7 @@ flowchart LR
 | Strands pieces | `BeforeToolCallEvent`, `event.interrupt()`, `event.cancel_tool`, `result.interrupts`, `interruptResponse` |
 | Tools | 2: `draft_email` (never pauses), `send_email` (always pauses) |
 | Code files | `agent.py` + `approval.py` (20 lines) |
-| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -55,7 +55,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **`callback_handler=None` is necessary here.** Without it, the model's text gets mixed with the
 > approval question and you would approve without properly reading what is about to be sent.
