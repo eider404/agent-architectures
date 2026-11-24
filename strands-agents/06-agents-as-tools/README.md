@@ -24,7 +24,7 @@ flowchart LR
 | Pattern | Agents as tools (2-level hierarchy) |
 | Strands pieces | `Agent`, `@tool`, `OpenAIResponsesModel`, `callback_handler=None` |
 | Tools | 4: `flights_agent`, `hotels_agent` (wrap agents), `search_flights`, `search_hotels` (read data) |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -52,7 +52,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **The `[tool] … ──►` lines show the delegation as it happens.** If you see none, the
 > orchestrator answered on its own.

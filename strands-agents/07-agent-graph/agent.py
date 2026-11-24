@@ -5,7 +5,7 @@ from strands.models.openai_responses import OpenAIResponsesModel
 from strands.multiagent import GraphBuilder
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-nano")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 
 TRIAGE_PROMPT = """You are Triage, the front desk of a support team. Read the ticket and answer with
 exactly ONE word and nothing else: TECHNICAL if it is about errors, crashes, outages, data loss or

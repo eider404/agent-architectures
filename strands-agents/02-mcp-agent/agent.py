@@ -7,7 +7,7 @@ from strands.models.openai_responses import OpenAIResponsesModel
 from strands.tools.mcp import MCPClient
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-nano")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 
 # Ruta absoluta: npx resuelve las relativas contra su propio cwd, no contra el del script.
 SANDBOX = str(Path(__file__).parent / "sandbox")

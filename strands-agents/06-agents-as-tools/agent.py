@@ -4,7 +4,7 @@ from strands import Agent, tool
 from strands.models.openai_responses import OpenAIResponsesModel
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-nano")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 
 # Datos de demo arbitrarios: ningun modelo puede adivinar estos codigos ni estos precios.
 # Si aparecen en la respuesta final, la herramienta del especialista corrio de verdad.

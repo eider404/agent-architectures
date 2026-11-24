@@ -22,7 +22,7 @@ flowchart LR
 | Pattern | Sequential pipeline, chained by hand |
 | Strands pieces | `Agent`, `OpenAIResponsesModel`, `callback_handler=None`, `agent.messages` |
 | Tools | None |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -49,7 +49,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **A few seconds of silence per stage:** streaming is turned off. The `[N/3]` banner shows which
 > stage the pipeline is on.

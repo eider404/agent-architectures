@@ -28,7 +28,7 @@ flowchart LR
 | Pattern | Agent graph with conditional edges |
 | Strands pieces | `GraphBuilder`, `add_node`, `add_edge(condition=...)`, `set_entry_point`, `set_max_node_executions`, `GraphResult` |
 | Tools | None: all five nodes are text in, text out |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -57,7 +57,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **The `[graph]` line comes out after the run, not during it.** The `Graph` does the walk and
 > reports it at the end in `result.execution_order`.

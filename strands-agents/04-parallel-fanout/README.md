@@ -25,7 +25,7 @@ flowchart LR
 | Pattern | Fan-out / fan-in: 3 parallel branches and 1 aggregator |
 | Strands pieces | `Agent`, `Agent.invoke_async`, `OpenAIResponsesModel`, `callback_handler=None` |
 | Tools | None |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -52,7 +52,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **The timing lines come out in the order each branch finishes**, not in the order they are
 > declared. That jumbled order shows they ran at the same time.

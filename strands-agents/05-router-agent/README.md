@@ -26,7 +26,7 @@ flowchart LR
 | Pattern | Router: the model classifies and the code dispatches |
 | Strands pieces | `Agent`, `structured_output_model=`, `AgentResult.structured_output`, `OpenAIResponsesModel` |
 | Tools | None written by hand |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -54,7 +54,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **The `[router]` line comes out before the response.** That way, if something goes wrong, you
 > know whether the classification or the specialist failed.

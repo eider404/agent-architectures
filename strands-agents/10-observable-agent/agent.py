@@ -6,7 +6,7 @@ from strands.models.openai_responses import OpenAIResponsesModel
 from observability import TraceHooks
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-mini")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 # El rastro vive junto a este archivo, no en el cwd de quien lanza.
 HERE = os.path.dirname(os.path.abspath(__file__))
 TRACE_PATH = os.path.join(HERE, "trace.jsonl")

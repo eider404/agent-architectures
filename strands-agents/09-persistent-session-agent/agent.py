@@ -7,7 +7,7 @@ from strands.session import FileSessionManager
 from sqlite_session import SqliteSessionManager
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-mini")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 # Los dos almacenes viven junto a este archivo, no en el cwd de quien lanza ni en ~/.strands.
 HERE = os.path.dirname(os.path.abspath(__file__))
 

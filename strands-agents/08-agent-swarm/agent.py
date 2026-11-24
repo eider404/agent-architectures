@@ -6,7 +6,7 @@ from strands.models.openai_responses import OpenAIResponsesModel
 from strands.multiagent import Swarm
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-nano")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 
 RESEARCHER_PROMPT = """You are researcher, one of three peers on a small software team. Turn a vague
 request into at most five numbered requirements: inputs, outputs, and the edge cases that matter.

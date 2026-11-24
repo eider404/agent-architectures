@@ -25,7 +25,7 @@ flowchart LR
 | Strands pieces | `session_manager=`, `FileSessionManager`, `RepositorySessionManager`, `SessionRepository` |
 | Tools | None |
 | Code files | `agent.py` + `sqlite_session.py` (custom SQLite backend, standard library only) |
-| Model | `gpt-5.4-mini` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -56,7 +56,7 @@ cp .env.example .env                          # put your OPENAI_API_KEY in it
 | Variable / argument | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-mini` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 | `session_id` (argument) | No | Name of the memory; defaults to `default` |
 | `--sqlite` / `--no-session` | No | Switches the store or removes it |
 

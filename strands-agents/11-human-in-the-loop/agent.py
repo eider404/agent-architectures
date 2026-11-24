@@ -5,7 +5,7 @@ from strands.models.openai_responses import OpenAIResponsesModel
 from approval import ApprovalHook
 # Lee el .env local: la clave (que toma el cliente de openai) y el modelo.
 load_dotenv()
-MODEL_ID = os.getenv("MODEL_ID", "gpt-5.4-mini")
+MODEL_ID = os.getenv("MODEL_ID", "gpt-6-luna")
 
 SYSTEM_PROMPT = """You are Mailbot, an email drafting assistant.
 

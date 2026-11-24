@@ -26,7 +26,7 @@ flowchart LR
 | Strands pieces | `Agent`, `MCPClient`, `list_tools_sync`, `tool_filters`, `OpenAIResponsesModel` |
 | Tools | `read_text_file`, `list_directory`, `directory_tree`, `search_files`, `get_file_info`. None of its own |
 | MCP server | `@modelcontextprotocol/server-filesystem@2026.8.31` (pinned version) |
-| Model | `gpt-5.4-nano` (overridable with `MODEL_ID`) |
+| Model | `gpt-6-luna` (overridable with `MODEL_ID`) |
 
 **Key ideas**
 
@@ -51,7 +51,7 @@ cp .env.example .env          # put your OPENAI_API_KEY in it
 | Variable | Required | Use |
 |---|---|---|
 | `OPENAI_API_KEY` | Yes | Your OpenAI key |
-| `MODEL_ID` | No | Model to use; defaults to `gpt-5.4-nano` |
+| `MODEL_ID` | No | Model to use; defaults to `gpt-6-luna` |
 
 > **The first start takes a few seconds** while `npx` downloads the server. It has not hung.
 
