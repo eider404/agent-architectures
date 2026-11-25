@@ -1,0 +1,4 @@
+google-adk>=2.15.0
+# ADK limita LiteLLM a este rango; no subir el tope sin revisar la version nueva.
+litellm>=1.84.0,<1.106.3
+python-dotenv>=1.0.0
