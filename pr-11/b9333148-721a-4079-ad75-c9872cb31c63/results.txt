@@ -1,0 +1,274 @@
+##### verify.py 07-agent-graph graph
+
+[graph] triage ──► logs ──► impact ──► responder
+reply TECHNICAL
+   saw triage ['ticket TECHNICAL'] | ticket in instruction: False
+   saw logs ['ticket TECHNICAL'] | ticket in instruction: False
+   saw impact ['ticket TECHNICAL'] | ticket in instruction: False
+   saw responder ['{"impact": "note-impact", "logs": "note-logs"}'] | ticket in instruction: True
+
+[graph] triage ──► business ──► responder
+reply BUSINESS
+   saw triage ['ticket BUSINESS'] | ticket in instruction: False
+   saw business ['ticket BUSINESS'] | ticket in instruction: False
+   saw responder ['note-business'] | ticket in instruction: True
+PASS 07
+exit=0
+##### verify.py 08-agent-swarm swarm
+
+[researcher] pensando...
+  researcher ──► coder: REQS
+
+[coder] pensando...
+  coder ──► reviewer: CODE1
+
+[reviewer] pensando...
+  reviewer ──► coder: DEFECT
+
+[coder] pensando...
+  coder ──► reviewer: CODE2
+
+[reviewer] pensando...
+
+[swarm] researcher ──► coder ──► reviewer ──► coder ──► reviewer  (completed)
+APPROVED
+
+[researcher] pensando...
+  researcher ──► coder: REQS
+
+[coder] pensando...
+  coder ──► reviewer: CODE
+
+[reviewer] pensando...
+  reviewer ──► coder: DEFECT
+
+[coder] pensando...
+  coder ──► reviewer: CODE
+
+[reviewer] pensando...
+  reviewer ──► coder: DEFECT
+
+[coder] pensando...
+  coder ──► reviewer: CODE
+
+[reviewer] pensando...
+
+[swarm] researcher ──► coder ──► reviewer ──► coder ──► reviewer ──► coder ──► reviewer  (failed)
+
+PASS 08 calls at limit: 12
+exit=0
+##### verify.py 09-persistent-session-agent tell ana
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'ana' | store: JsonSessionService | restored messages: 0
+
+You > my member code is KRAKEN-7743
+
+Mnemo > Got it.
+
+You > exit
+   model saw KRAKEN-7743: True
+exit=0
+##### verify.py 09-persistent-session-agent ask ana
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'ana' | store: JsonSessionService | restored messages: 2
+
+You > what is my member code?
+
+Mnemo > (answer)
+
+You > exit
+   model saw KRAKEN-7743: True
+exit=0
+##### verify.py 09-persistent-session-agent ask bruno
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'bruno' | store: JsonSessionService | restored messages: 0
+
+You > what is my member code?
+
+Mnemo > (answer)
+
+You > exit
+   model saw KRAKEN-7743: False
+exit=0
+##### verify.py 09-persistent-session-agent ask ana --no-session
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'ana' | store: none | restored messages: 0
+
+You > what is my member code?
+
+Mnemo > (answer)
+
+You > exit
+   model saw KRAKEN-7743: False
+exit=0
+##### verify.py 09-persistent-session-agent ask ana --sqlite
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'ana' | store: SqliteSessionService | restored messages: 0
+
+You > what is my member code?
+
+Mnemo > (answer)
+
+You > exit
+   model saw KRAKEN-7743: False
+exit=0
+##### verify.py 09-persistent-session-agent tell ana --sqlite
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'ana' | store: SqliteSessionService | restored messages: 2
+
+You > my member code is KRAKEN-7743
+
+Mnemo > Got it.
+
+You > exit
+   model saw KRAKEN-7743: True
+exit=0
+##### verify.py 09-persistent-session-agent ask ana --sqlite
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'ana' | store: SqliteSessionService | restored messages: 4
+
+You > what is my member code?
+
+Mnemo > (answer)
+
+You > exit
+   model saw KRAKEN-7743: True
+exit=0
+##### verify.py 10-observable-agent observe
+
+Concierge: Hotel Kraken bookings. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Trace: C:\Users\eider\.codeden\wt\agent-architectures\b9333148\google-adk\10-observable-agent\trace.jsonl
+
+You > is there room on October 4?
+[trace] 001 turn=1 before_invocation  prompt="is there room on October 4?"
+[trace] 002 turn=1 before_model_call  messages=1
+[trace] 003 turn=1 after_model_call   stop_reason="tool_use"
+[trace] 004 turn=1 before_tool_call   tool="check_availability"  input={"date": "2026-10-04"}
+[trace] 005 turn=1 after_tool_call    tool="check_availability"  status="success"  duration_ms=0.37
+                                      result="7 rooms free on 2026-10-04."
+[trace] 006 turn=1 before_model_call  messages=3
+[trace] 007 turn=1 after_model_call   stop_reason="end_turn"
+
+Concierge > 7 rooms
+[trace] 008 turn=1 after_invocation   cycles=2  tools=1  tokens=200
+
+You > cancel booking ZZZ-0000
+[trace] 009 turn=2 before_invocation  prompt="cancel booking ZZZ-0000"
+[trace] 010 turn=2 before_model_call  messages=5
+[trace] 011 turn=2 after_model_call   stop_reason="tool_use"
+[trace] 012 turn=2 before_tool_call   tool="cancel_booking"  input={"code": "ZZZ-0000"}
+[trace] 013 turn=2 after_tool_call    tool="cancel_booking"  status="success"  duration_ms=0.27
+                                      result="Unknown booking code: 'ZZZ-0000'."
+[trace] 014 turn=2 before_model_call  messages=7
+[trace] 015 turn=2 after_model_call   stop_reason="end_turn"
+
+Concierge > unknown code
+[trace] 016 turn=2 after_invocation   cycles=2  tools=1  tokens=200
+
+You > what are you?
+[trace] 017 turn=3 before_invocation  prompt="what are you?"
+[trace] 018 turn=3 before_model_call  messages=9
+[trace] 019 turn=3 after_model_call   stop_reason="end_turn"
+
+Concierge > I am Concierge
+[trace] 020 turn=3 after_invocation   cycles=1  tools=0  tokens=100
+
+You > bad args
+[trace] 021 turn=4 before_invocation  prompt="bad args"
+[trace] 022 turn=4 before_model_call  messages=11
+[trace] 023 turn=4 after_model_call   stop_reason="tool_use"
+[trace] 024 turn=4 before_tool_call   tool="check_availability"  input={}
+[trace] 025 turn=4 after_tool_call    tool="check_availability"  status="success"  duration_ms=0.21
+                                      result={"error": "Invoking `check_availability()` f..."
+[trace] 026 turn=4 before_model_call  messages=13
+[trace] 027 turn=4 after_model_call   stop_reason="end_turn"
+
+Concierge > missing arg
+[trace] 028 turn=4 after_invocation   cycles=2  tools=1  tokens=200
+
+You > exit
+
+Concierge: Hotel Kraken bookings. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Trace: C:\Users\eider\.codeden\wt\agent-architectures\b9333148\google-adk\10-observable-agent\trace.jsonl
+
+You > fail
+[trace] 029 turn=5 before_invocation  prompt="fail"
+[trace] 030 turn=5 before_model_call  messages=1
+[trace] 031 turn=5 after_model_call   stop_reason="tool_use"
+[trace] 032 turn=5 before_tool_call   tool="boom"  input={}
+[trace] 033 turn=5 after_tool_call    tool="boom"  status="error"  duration_ms=0.18  result="kaboom"
+[trace] 034 turn=5 after_invocation   result="none"
+   raised: ValueError kaboom
+
+Concierge: Hotel Kraken bookings. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Trace: C:\Users\eider\.codeden\wt\agent-architectures\b9333148\google-adk\10-observable-agent\trace.jsonl
+
+You > fail
+[trace] 035 turn=6 before_invocation  prompt="fail"
+[trace] 036 turn=6 before_model_call  messages=1
+[trace] 037 turn=6 after_invocation   result="none"
+   raised: RuntimeError model down
+exit=0
+##### verify.py 10-observable-agent otel --otel (span names only)
+    "name": "execute_tool check_availability",
+    "name": "generate_content openai/responses/gpt-6-luna",
+    "name": "generate_content openai/responses/gpt-6-luna",
+    "name": "invoke_agent Concierge",
+    "name": "invoke_workflow Concierge",
+##### echo exit | python 07-agent-graph/agent.py
+
+SupportGraph: Describe your issue. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+
+Ticket >  -> exit=0
+##### echo exit | python 08-agent-swarm/agent.py
+
+DevSwarm: Ask the team for a small function. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+
+Task >  -> exit=0
+##### echo exit | python 09-persistent-session-agent/agent.py
+
+Mnemo: I remember what you told me in an earlier run. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Session 'default' | store: JsonSessionService | restored messages: 0
+
+You >  -> exit=0
+##### echo exit | python 10-observable-agent/agent.py
+
+Concierge: Hotel Kraken bookings. Type 'exit' to quit.
+
+Using LLM model: gpt-6-luna
+Trace: C:\Users\eider\.codeden\wt\agent-architectures\b9333148\google-adk\10-observable-agent\trace.jsonl
+
+You >  -> exit=0
