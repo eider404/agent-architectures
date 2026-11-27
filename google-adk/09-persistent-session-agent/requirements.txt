@@ -2,5 +2,5 @@ google-adk>=2.15.0
 # ADK limita LiteLLM a este rango; no subir el tope sin revisar la version nueva.
 litellm>=1.84.0,<1.106.3
 python-dotenv>=1.0.0
-# LiteLLM importa mcp al llamar a la Responses API y ADK no lo instala por defecto.
-mcp>=1.24,<3
+# LiteLLM importa mcp al llamar a la Responses API y ADK no lo instala por defecto; con mcp 1.x falla.
+mcp>=2.0,<3
